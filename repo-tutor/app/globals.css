@@ -1,0 +1,118 @@
+@import "tailwindcss";
+
+/* ============================================================
+   Repo Tutor — Design System
+   ============================================================ */
+
+:root {
+  /* Brand colors */
+  --cream: #FFF8EC;
+  --orange: #FF6B35;
+  --orange-dark: #e55a28;
+  --purple: #7447EB;
+  --purple-light: #9b72ef;
+  --yellow: #FFD84D;
+  --green: #B8E986;
+  --ink: #202020;
+  --ink-muted: #6B6557;
+  --white: #FFFFFF;
+  --border: #E8DDD0;
+  --code-bg: #1e1e2e;
+}
+
+@theme inline {
+  --color-background: var(--cream);
+  --color-foreground: var(--ink);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+/* Reset dark mode override */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: var(--cream);
+    --foreground: var(--ink);
+  }
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--cream);
+  color: var(--ink);
+  font-family: var(--font-sans), system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  min-height: 100vh;
+}
+
+/* ─── Code blocks ─────────────────────────────────────────── */
+
+.code-block {
+  background: var(--code-bg);
+  color: #cdd6f4;
+  border-radius: 8px;
+  overflow: auto;
+  font-family: var(--font-mono), 'Courier New', monospace;
+  font-size: 0.875rem;
+  line-height: 1.6;
+  tab-size: 2;
+}
+
+.code-line-number {
+  color: #585b70;
+  user-select: none;
+  min-width: 2.5rem;
+  padding-right: 1rem;
+  text-align: right;
+}
+
+/* ─── Syntax token colors ─────────────────────────────────── */
+.token-keyword    { color: #cba6f7; }
+.token-string     { color: #a6e3a1; }
+.token-comment    { color: #6c7086; font-style: italic; }
+.token-function   { color: #89b4fa; }
+.token-number     { color: #fab387; }
+.token-operator   { color: #89dceb; }
+.token-type       { color: #f38ba8; }
+.token-punctuation { color: #89dceb; }
+.token-variable   { color: #cdd6f4; }
+
+/* ─── Scrollbar ───────────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--ink-muted); }
+
+/* ─── Focus states ────────────────────────────────────────── */
+:focus-visible {
+  outline: 2px solid var(--orange);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* ─── Transitions ─────────────────────────────────────────── */
+.transition-base {
+  transition: all 0.15s ease;
+}
+
+/* ─── Geometric decorative elements ──────────────────────── */
+.dot-grid {
+  background-image: radial-gradient(circle, var(--border) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+/* ─── Badge chip ──────────────────────────────────────────── */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.625rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.025em;
+  white-space: nowrap;
+}
