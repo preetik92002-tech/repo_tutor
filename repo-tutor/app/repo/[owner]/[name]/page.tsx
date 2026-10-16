@@ -1,19 +1,23 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { getDemoRepository, getCourse, getRepoProgress } from "@/lib/services";
-import { Badge, StatusBadge } from "@/components/ui/Badge";
+import { getDemoRepository, getCourse, getAllRepositories } from "@/lib/services";
+import { StatusBadge } from "@/components/ui/Badge";
 import { ProgressBar } from "@/components/ui/ProgressBar";
 import {
-  GithubIcon,
-  BookOpenIcon,
   ClockIcon,
   ArrowRightIcon,
-  CheckCircleIcon,
-  PlayCircleIcon,
-  CircleIcon,
+  CodeIcon,
   ExternalLinkIcon,
 } from "@/components/ui/Icons";
 import type { LearningPathItem } from "@/lib/types";
+
+export function generateStaticParams() {
+  const repos = getAllRepositories();
+  return repos.map((repo) => ({
+    owner: repo.owner,
+    name: repo.name,
+  }));
+}
 
 interface Props {
   params: Promise<{ owner: string; name: string }>;
@@ -27,238 +31,211 @@ export default async function RepoDashboard({ params }: Props) {
   const course = getCourse(owner, name);
   if (!course) return notFound();
 
-  // Compute progress from demo defaults (server side — no localStorage)
+  // Progress metrics
   const completedLessons = course.learningPath.filter((l) => l.status === "completed").length;
   const inProgressLesson = course.learningPath.find((l) => l.status === "in_progress");
-  const firstUnfinished = inProgressLesson ?? course.learningPath.find((l) => l.status === "not_started");
+  const firstUnfinished = inProgressLesson ?? course.learningPath.find((l) => l.status === "not_started") ?? course.learningPath[0];
+  const totalMinutes = course.learningPath.reduce((acc, l) => acc + l.estimatedMinutes, 0);
+  const remainingMinutes = course.learningPath
+    .filter((l) => l.status !== "completed")
+    .reduce((acc, l) => acc + l.estimatedMinutes, 0);
   const pct = Math.round((completedLessons / course.totalLessons) * 100);
 
   return (
-    <div style={{ background: "var(--cream)" }} className="min-h-screen">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        {/* ─── Repo Header ─────────────────────────────── */}
-        <div
-          className="p-6 rounded-2xl border-2 mb-8"
-          style={{ background: "var(--white)", borderColor: "var(--border)" }}
-        >
-          <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-            <div className="space-y-2">
-              {/* Demo indicator */}
-              <div className="flex items-center gap-2 flex-wrap">
-                <Badge variant="yellow">Demo Course</Badge>
-                {repo.topics.slice(0, 3).map((t) => (
-                  <Badge key={t} variant="muted">{t}</Badge>
-                ))}
-              </div>
-              <h1
-                className="text-3xl font-black tracking-tight"
-                style={{ color: "var(--ink)" }}
-              >
-                {repo.fullName}
-              </h1>
-              <p style={{ color: "var(--ink-muted)" }}>{repo.description}</p>
-              <a
-                href={repo.githubUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 text-sm font-medium hover:opacity-70 transition-opacity"
-                style={{ color: "var(--purple)" }}
-              >
-                <GithubIcon size={15} />
-                {repo.githubUrl}
-                <ExternalLinkIcon size={12} />
-              </a>
-            </div>
-            {firstUnfinished && (
-              <Link
-                href={`/repo/${owner}/${name}/lesson/${firstUnfinished.id}`}
-                className="shrink-0 flex items-center gap-2 px-5 py-3 rounded-xl font-bold text-white text-sm transition-opacity hover:opacity-90"
-                style={{ background: "var(--orange)" }}
-              >
-                Continue Learning
-                <ArrowRightIcon size={16} />
-              </Link>
-            )}
-          </div>
+    <div className="container-page py-8 sm:py-12">
+      {/* ─── Header Card ────────────────────────────────────── */}
+      <header className="card card-pop p-5 sm:p-7 border-2 border-ink bg-white">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="badge bg-sun text-ink uppercase tracking-wide">Demo data</span>
+          <span className="badge bg-white text-ink">{repo.language}</span>
+          {repo.topics.slice(0, 3).map((t) => (
+            <span key={t} className="badge bg-white text-muted">
+              {t}
+            </span>
+          ))}
         </div>
 
-        <div className="grid lg:grid-cols-3 gap-8">
-          {/* ─── Left column ───────────────────────────── */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* Learning path */}
-            <section>
-              <h2
-                className="text-xl font-black mb-4"
-                style={{ color: "var(--ink)" }}
-              >
-                Learning Path
-              </h2>
-              <div className="space-y-3">
-                {course.learningPath.map((lesson, i) => (
-                  <LessonRow
-                    key={lesson.id}
-                    lesson={lesson}
-                    owner={owner}
-                    name={name}
-                    isLast={i === course.learningPath.length - 1}
-                  />
-                ))}
-              </div>
-            </section>
-          </div>
+        <h1 className="mt-3 break-words text-3xl sm:text-4xl text-ink">
+          {repo.owner}
+          <span className="text-muted">/</span>
+          <span className="text-purple">{repo.name}</span>
+        </h1>
 
-          {/* ─── Right sidebar ──────────────────────────── */}
-          <div className="space-y-6">
-            {/* Progress card */}
-            <div
-              className="p-5 rounded-2xl border-2"
-              style={{ background: "var(--white)", borderColor: "var(--border)" }}
-            >
-              <h3 className="font-bold mb-4" style={{ color: "var(--ink)" }}>
-                Your Progress
-              </h3>
-              <ProgressBar value={pct} label={`${completedLessons} of ${course.totalLessons} lessons`} />
-              <div className="mt-4 grid grid-cols-2 gap-3">
-                <StatBox label="Completed" value={String(completedLessons)} color="var(--green)" />
-                <StatBox label="Remaining" value={String(course.totalLessons - completedLessons)} color="var(--orange)" />
-                <StatBox label="Est. Hours" value={`~${course.estimatedHours}h`} color="var(--purple)" />
-                <StatBox label="Level" value={course.skillLevel} color="var(--yellow)" />
-              </div>
-            </div>
-
-            {/* Objectives */}
-            <div
-              className="p-5 rounded-2xl border-2"
-              style={{ background: "var(--white)", borderColor: "var(--border)" }}
-            >
-              <h3 className="font-bold mb-3" style={{ color: "var(--ink)" }}>
-                Learning Objectives
-              </h3>
-              <ul className="space-y-2">
-                {course.objectives.map((obj, i) => (
-                  <li key={i} className="flex items-start gap-2 text-sm" style={{ color: "var(--ink-muted)" }}>
-                    <CheckCircleIcon size={15} className="mt-0.5 shrink-0" style={{ color: "var(--green)" } as React.CSSProperties} />
-                    {obj}
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            {/* Code explorer link */}
-            <Link
-              href={`/repo/${owner}/${name}/code`}
-              className="flex items-center justify-between p-5 rounded-2xl border-2 hover:border-purple-400 transition-all group"
-              style={{ background: "var(--white)", borderColor: "var(--border)" }}
-            >
-              <div>
-                <h3 className="font-bold text-sm" style={{ color: "var(--ink)" }}>
-                  Explore the Code
-                </h3>
-                <p className="text-xs mt-0.5" style={{ color: "var(--ink-muted)" }}>
-                  Browse files and read explanations
-                </p>
-              </div>
-              <ArrowRightIcon size={18} style={{ color: "var(--purple)" } as React.CSSProperties} className="group-hover:translate-x-1 transition-transform" />
-            </Link>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ─── Lesson row ───────────────────────────────────────────────
-
-function LessonRow({
-  lesson,
-  owner,
-  name,
-  isLast,
-}: {
-  lesson: LearningPathItem;
-  owner: string;
-  name: string;
-  isLast: boolean;
-}) {
-  const isClickable = lesson.status !== "not_started" || true; // all clickable in demo
-
-  const StatusIcon =
-    lesson.status === "completed"
-      ? CheckCircleIcon
-      : lesson.status === "in_progress"
-      ? PlayCircleIcon
-      : CircleIcon;
-
-  const iconColor =
-    lesson.status === "completed"
-      ? "var(--green)"
-      : lesson.status === "in_progress"
-      ? "var(--orange)"
-      : "var(--border)";
-
-  const borderColor =
-    lesson.status === "in_progress" ? "var(--orange)" : "var(--border)";
-
-  return (
-    <Link
-      href={`/repo/${owner}/${name}/lesson/${lesson.id}`}
-      className="flex items-start gap-4 p-4 rounded-xl border-2 hover:shadow-sm transition-all group"
-      style={{
-        background: lesson.status === "in_progress" ? "#FFF8EC" : "var(--white)",
-        borderColor,
-      }}
-    >
-      <StatusIcon
-        size={22}
-        style={{ color: iconColor, marginTop: 2 } as React.CSSProperties}
-        className="shrink-0"
-      />
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-xs font-bold" style={{ color: "var(--ink-muted)" }}>
-            Lesson {lesson.lessonNumber}
-          </span>
-          <StatusBadge status={lesson.status} />
-        </div>
-        <h4 className="font-bold mt-0.5" style={{ color: "var(--ink)" }}>
-          {lesson.title}
-        </h4>
-        <p className="text-sm mt-1" style={{ color: "var(--ink-muted)" }}>
-          {lesson.objective}
+        <p className="mt-2 max-w-2xl text-muted text-base leading-relaxed">
+          {repo.description}
         </p>
-        <div className="flex items-center gap-1 mt-2 text-xs" style={{ color: "var(--ink-muted)" }}>
-          <ClockIcon size={12} />
-          {lesson.estimatedMinutes} min
-        </div>
-      </div>
-      <ArrowRightIcon
-        size={16}
-        className="shrink-0 mt-1 opacity-0 group-hover:opacity-100 transition-opacity"
-        style={{ color: "var(--orange)" } as React.CSSProperties}
-      />
-    </Link>
-  );
-}
 
-function StatBox({
-  label,
-  value,
-  color,
-}: {
-  label: string;
-  value: string;
-  color: string;
-}) {
-  return (
-    <div
-      className="p-3 rounded-xl text-center"
-      style={{ background: "var(--cream)" }}
-    >
-      <div className="text-lg font-black" style={{ color }}>
-        {value}
-      </div>
-      <div className="text-xs mt-0.5" style={{ color: "var(--ink-muted)" }}>
-        {label}
+        <p className="mt-2 text-xs text-muted">
+          Demo mode: this course is bundled sample content. Repo Tutor has not analysed the live repository.
+        </p>
+
+        <div className="mt-5 flex flex-wrap items-center gap-3">
+          {firstUnfinished && (
+            <Link
+              href={`/repo/${owner}/${name}/lesson/${firstUnfinished.id}`}
+              className="btn btn-primary btn-lg"
+            >
+              <span>{completedLessons > 0 ? "Continue Learning" : "Start Course"}</span>
+              <ArrowRightIcon size={18} />
+            </Link>
+          )}
+
+          <Link
+            href={`/repo/${owner}/${name}/code`}
+            className="btn btn-secondary btn-lg"
+          >
+            <CodeIcon size={18} />
+            <span>Explore code</span>
+          </Link>
+
+          <a
+            href={repo.githubUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 text-sm font-bold underline underline-offset-4 hover:text-purple ml-2"
+          >
+            <span>View on GitHub</span>
+            <ExternalLinkIcon size={14} />
+          </a>
+        </div>
+      </header>
+
+      {/* ─── Learning Overview ──────────────────────────────── */}
+      <section aria-label="Learning overview" className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {/* Progress % */}
+        <div className="card p-5 sm:col-span-2 lg:col-span-2 border-2 border-ink">
+          <p className="text-xs font-extrabold uppercase tracking-wider text-muted">Progress</p>
+          <p className="mt-1 font-display text-4xl font-black text-ink">{pct}%</p>
+          <div className="mt-3">
+            <ProgressBar value={pct} height={14} />
+          </div>
+        </div>
+
+        {/* Lessons Completed */}
+        <div className="card bg-purple-soft p-5 border-2 border-ink">
+          <p className="text-xs font-extrabold uppercase tracking-wider text-muted">
+            Lessons completed
+          </p>
+          <p className="mt-1 font-display text-4xl font-black text-ink">
+            {completedLessons}
+            <span className="text-2xl text-muted"> / {course.totalLessons}</span>
+          </p>
+        </div>
+
+        {/* Estimated Time Left */}
+        <div className="card bg-sun/60 p-5 border-2 border-ink">
+          <p className="text-xs font-extrabold uppercase tracking-wider text-muted">
+            Time left
+          </p>
+          <p className="mt-1 font-display text-4xl font-black text-ink">
+            {remainingMinutes || totalMinutes}
+            <span className="text-2xl font-bold"> min</span>
+          </p>
+        </div>
+      </section>
+
+      {/* ─── Learning Path & Objectives Layout ──────────────── */}
+      <div className="mt-8 grid gap-8 lg:grid-cols-[1.6fr_1fr]">
+        {/* Left: Syllabus timeline */}
+        <section aria-labelledby="path">
+          <h2 id="path" className="text-2xl sm:text-3xl text-ink">
+            Learning path
+          </h2>
+
+          <ol className="mt-5 space-y-3">
+            {course.learningPath.map((lesson) => {
+              const isCurrent = lesson.status === "in_progress" || (lesson.id === firstUnfinished?.id && lesson.status === "not_started" && completedLessons === 0);
+
+              return (
+                <li key={lesson.id}>
+                  <Link
+                    href={`/repo/${owner}/${name}/lesson/${lesson.id}`}
+                    aria-current={isCurrent ? "step" : undefined}
+                    className={`card flex gap-4 p-4 transition hover:-translate-y-0.5 hover:shadow-pop ${
+                      isCurrent
+                        ? "border-[3px] bg-purple-soft shadow-pop"
+                        : "border-2 bg-white"
+                    }`}
+                  >
+                    {/* Number block */}
+                    <span
+                      aria-hidden="true"
+                      className="grid h-10 w-10 shrink-0 place-items-center rounded-[10px] border-2 border-ink font-display text-lg font-black bg-white text-ink"
+                    >
+                      {lesson.lessonNumber}
+                    </span>
+
+                    {/* Lesson description */}
+                    <span className="min-w-0 flex-1">
+                      <span className="flex flex-wrap items-center gap-2">
+                        <span className="text-base font-extrabold text-ink">
+                          {lesson.title}
+                        </span>
+                        {isCurrent && (
+                          <span className="badge bg-orange text-ink">
+                            Up next
+                          </span>
+                        )}
+                      </span>
+
+                      <span className="mt-0.5 block text-sm text-muted">
+                        {lesson.objective}
+                      </span>
+
+                      <span className="mt-2 flex flex-wrap items-center gap-3 text-xs font-bold">
+                        <span className="inline-flex items-center gap-1 text-muted">
+                          <ClockIcon size={14} />
+                          {lesson.estimatedMinutes} min
+                        </span>
+                        <StatusBadge status={lesson.status} />
+                      </span>
+                    </span>
+                  </Link>
+                </li>
+              );
+            })}
+          </ol>
+        </section>
+
+        {/* Right: Learning Objectives */}
+        <aside aria-labelledby="objectives" className="h-fit lg:sticky lg:top-24">
+          <div className="card bg-sun/40 p-5 border-2 border-ink">
+            <h2 id="objectives" className="flex items-center gap-2 text-xl font-black text-ink">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="text-ink"
+                aria-hidden="true"
+              >
+                <circle cx="12" cy="12" r="10" />
+                <circle cx="12" cy="12" r="6" />
+                <circle cx="12" cy="12" r="2" />
+              </svg>
+              What you will learn
+            </h2>
+
+            <ul className="mt-4 space-y-3">
+              {course.objectives.slice(0, 3).map((obj, i) => (
+                <li key={i} className="flex gap-3 text-sm text-ink leading-relaxed">
+                  <span
+                    aria-hidden="true"
+                    className="grid h-6 w-6 shrink-0 place-items-center rounded-full border-2 border-ink bg-white text-xs font-black shrink-0"
+                  >
+                    {i + 1}
+                  </span>
+                  <span>{obj}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </aside>
       </div>
     </div>
   );

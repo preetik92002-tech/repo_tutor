@@ -1,6 +1,14 @@
 import React from "react";
+import { CheckCircleIcon, CircleIcon } from "./Icons";
 
-type BadgeVariant = "orange" | "purple" | "green" | "yellow" | "muted" | "white";
+export type BadgeVariant =
+  | "orange"
+  | "purple"
+  | "purple-soft"
+  | "green"
+  | "yellow"
+  | "white"
+  | "muted";
 
 interface BadgeProps {
   children: React.ReactNode;
@@ -8,21 +16,19 @@ interface BadgeProps {
   className?: string;
 }
 
-const styles: Record<BadgeVariant, React.CSSProperties> = {
-  orange: { background: "#FF6B35", color: "#fff" },
-  purple: { background: "#7447EB", color: "#fff" },
-  green: { background: "#B8E986", color: "#202020" },
-  yellow: { background: "#FFD84D", color: "#202020" },
-  muted: { background: "#E8DDD0", color: "#6B6557" },
-  white: { background: "#fff", color: "#202020", border: "1px solid #E8DDD0" },
+const variantClasses: Record<BadgeVariant, string> = {
+  orange: "bg-orange text-ink",
+  purple: "bg-purple text-white",
+  "purple-soft": "bg-purple-soft text-purple",
+  green: "bg-fresh text-ink",
+  yellow: "bg-sun text-ink",
+  white: "bg-white text-ink",
+  muted: "bg-white text-muted",
 };
 
-export function Badge({ children, variant = "muted", className = "" }: BadgeProps) {
+export function Badge({ children, variant = "white", className = "" }: BadgeProps) {
   return (
-    <span
-      className={`badge ${className}`}
-      style={styles[variant]}
-    >
+    <span className={`badge ${variantClasses[variant]} ${className}`}>
       {children}
     </span>
   );
@@ -30,14 +36,29 @@ export function Badge({ children, variant = "muted", className = "" }: BadgeProp
 
 interface StatusBadgeProps {
   status: "completed" | "in_progress" | "not_started";
+  className?: string;
 }
 
-export function StatusBadge({ status }: StatusBadgeProps) {
-  const map = {
-    completed: { label: "Completed", variant: "green" as BadgeVariant },
-    in_progress: { label: "In Progress", variant: "orange" as BadgeVariant },
-    not_started: { label: "Not Started", variant: "muted" as BadgeVariant },
-  };
-  const { label, variant } = map[status];
-  return <Badge variant={variant}>{label}</Badge>;
+export function StatusBadge({ status, className = "" }: StatusBadgeProps) {
+  if (status === "completed") {
+    return (
+      <span className={`badge bg-fresh text-ink ${className}`}>
+        <CheckCircleIcon size={13} className="shrink-0" />
+        Completed
+      </span>
+    );
+  }
+  if (status === "in_progress") {
+    return (
+      <span className={`badge bg-orange text-ink ${className}`}>
+        In Progress
+      </span>
+    );
+  }
+  return (
+    <span className={`badge bg-white text-muted ${className}`}>
+      <CircleIcon size={12} className="shrink-0" />
+      Not Started
+    </span>
+  );
 }

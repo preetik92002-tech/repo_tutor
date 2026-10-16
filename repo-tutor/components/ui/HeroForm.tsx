@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowRightIcon, AlertCircleIcon } from "@/components/ui/Icons";
+import { AlertCircleIcon, ArrowRightIcon } from "@/components/ui/Icons";
 import { parseGitHubUrl, getDemoRepository } from "@/lib/services";
 import type { LanguagePreference, SkillLevel } from "@/lib/types";
 
@@ -23,7 +23,7 @@ export default function HeroForm({ compact = false }: HeroFormProps) {
     setError("");
 
     if (!url.trim()) {
-      setError("Please enter a GitHub repository URL.");
+      setError("Please enter a public GitHub repository URL.");
       return;
     }
 
@@ -45,87 +45,144 @@ export default function HeroForm({ compact = false }: HeroFormProps) {
     router.push(`/repo/${parsed.owner}/${parsed.name}`);
   }
 
-  const selectClass =
-    "w-full px-3 py-2.5 rounded-lg border text-sm font-medium bg-white appearance-none cursor-pointer focus:outline-none focus:ring-2";
-
   return (
-    <form onSubmit={handleSubmit} className={compact ? "space-y-3" : "space-y-4"}>
-      {/* URL input */}
+    <form
+      id="start"
+      noValidate
+      onSubmit={handleSubmit}
+      className={`card card-pop scroll-mt-24 space-y-5 p-5 sm:p-6 ${compact ? "max-w-md" : ""}`}
+      aria-label="Start learning a repository"
+    >
+      {/* URL Input */}
       <div>
-        <label htmlFor="repo-url" className="block text-sm font-semibold mb-1.5" style={{ color: "var(--ink)" }}>
-          GitHub Repository URL
+        <label
+          htmlFor="hero-repo-url"
+          className="mb-1.5 block text-xs font-extrabold uppercase tracking-wider text-muted"
+        >
+          GitHub repository
         </label>
-        <input
-          id="repo-url"
-          type="url"
-          value={url}
-          onChange={(e) => { setUrl(e.target.value); setError(""); }}
-          placeholder="Paste a public GitHub repository URL..."
-          className="w-full px-4 py-3 rounded-xl border-2 text-sm bg-white outline-none transition-all"
-          style={{
-            borderColor: error ? "#f87171" : "var(--border)",
-            boxShadow: error ? "0 0 0 3px rgba(248,113,113,0.15)" : undefined,
-          }}
-          onFocus={(e) => {
-            if (!error) e.currentTarget.style.borderColor = "var(--orange)";
-          }}
-          onBlur={(e) => {
-            if (!error) e.currentTarget.style.borderColor = "var(--border)";
-          }}
-          aria-describedby={error ? "url-error" : undefined}
-          aria-invalid={!!error}
-        />
+        <div className="relative">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted"
+            aria-hidden="true"
+          >
+            <path d="M9 17H7A5 5 0 0 1 7 7h2"></path>
+            <path d="M15 7h2a5 5 0 1 1 0 10h-2"></path>
+            <line x1="8" x2="16" y1="12" y2="12"></line>
+          </svg>
+          <input
+            id="hero-repo-url"
+            type="url"
+            inputMode="url"
+            autoComplete="off"
+            value={url}
+            onChange={(e) => {
+              setUrl(e.target.value);
+              setError("");
+            }}
+            placeholder="Paste a public GitHub repository URL..."
+            className="w-full rounded-[10px] border-2 border-ink bg-cream py-3 pl-10 pr-3 text-base text-ink placeholder:text-muted/70 focus:bg-white focus:outline-none"
+            aria-describedby={error ? "url-error" : undefined}
+            aria-invalid={!!error}
+          />
+        </div>
         {error && (
-          <p id="url-error" className="mt-2 text-sm flex items-start gap-1.5" style={{ color: "#dc2626" }}>
-            <AlertCircleIcon size={15} className="mt-0.5 shrink-0" />
+          <p
+            id="url-error"
+            className="mt-2 text-sm font-semibold flex items-start gap-1.5 text-[#dc2626]"
+          >
+            <AlertCircleIcon size={16} className="mt-0.5 shrink-0" />
             {error}
           </p>
         )}
       </div>
 
-      {/* Language + Level selectors */}
-      <div className="grid grid-cols-2 gap-3">
-        <div>
-          <label htmlFor="language" className="block text-xs font-semibold mb-1" style={{ color: "var(--ink-muted)" }}>
+      {/* Language & Skill Level Selectors (Segmented Radio Buttons) */}
+      <div className="grid gap-4 sm:grid-cols-2">
+        <fieldset className="min-w-0">
+          <legend className="mb-1.5 text-xs font-extrabold uppercase tracking-wider text-muted">
             Language
-          </label>
-          <select
-            id="language"
-            value={language}
-            onChange={(e) => setLanguage(e.target.value as LanguagePreference)}
-            className={selectClass}
-            style={{ borderColor: "var(--border)", color: "var(--ink)" }}
-          >
-            <option value="english">English</option>
-            <option value="hinglish">Hinglish</option>
-          </select>
-        </div>
-        <div>
-          <label htmlFor="level" className="block text-xs font-semibold mb-1" style={{ color: "var(--ink-muted)" }}>
-            Skill Level
-          </label>
-          <select
-            id="level"
-            value={level}
-            onChange={(e) => setLevel(e.target.value as SkillLevel)}
-            className={selectClass}
-            style={{ borderColor: "var(--border)", color: "var(--ink)" }}
-          >
-            <option value="beginner">Beginner</option>
-            <option value="intermediate">Intermediate</option>
-            <option value="advanced">Advanced</option>
-          </select>
-        </div>
+          </legend>
+          <div className="flex flex-wrap gap-2">
+            <label
+              className={`cursor-pointer rounded-lg border-2 border-ink px-3 py-1.5 text-sm font-bold transition has-[:focus-visible]:outline has-[:focus-visible]:outline-[3px] has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-purple ${
+                language === "english"
+                  ? "bg-purple text-white shadow-pop-sm"
+                  : "bg-white text-ink hover:bg-sun"
+              }`}
+            >
+              <input
+                type="radio"
+                className="sr-only"
+                name="hero-language"
+                checked={language === "english"}
+                onChange={() => setLanguage("english")}
+              />
+              English
+            </label>
+            <label
+              className={`cursor-pointer rounded-lg border-2 border-ink px-3 py-1.5 text-sm font-bold transition has-[:focus-visible]:outline has-[:focus-visible]:outline-[3px] has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-purple ${
+                language === "hinglish"
+                  ? "bg-purple text-white shadow-pop-sm"
+                  : "bg-white text-ink hover:bg-sun"
+              }`}
+            >
+              <input
+                type="radio"
+                className="sr-only"
+                name="hero-language"
+                checked={language === "hinglish"}
+                onChange={() => setLanguage("hinglish")}
+              />
+              Hinglish
+            </label>
+          </div>
+        </fieldset>
+
+        <fieldset className="min-w-0">
+          <legend className="mb-1.5 text-xs font-extrabold uppercase tracking-wider text-muted">
+            Skill level
+          </legend>
+          <div className="flex flex-wrap gap-2">
+            {(["beginner", "intermediate", "advanced"] as SkillLevel[]).map((lvl) => (
+              <label
+                key={lvl}
+                className={`cursor-pointer rounded-lg border-2 border-ink px-3 py-1.5 text-sm font-bold capitalize transition has-[:focus-visible]:outline has-[:focus-visible]:outline-[3px] has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-purple ${
+                  level === lvl
+                    ? "bg-purple text-white shadow-pop-sm"
+                    : "bg-white text-ink hover:bg-sun"
+                }`}
+              >
+                <input
+                  type="radio"
+                  className="sr-only"
+                  name="hero-skill-level"
+                  checked={level === lvl}
+                  onChange={() => setLevel(lvl)}
+                />
+                {lvl}
+              </label>
+            ))}
+          </div>
+        </fieldset>
       </div>
 
-      {/* CTA */}
+      {/* CTA Button */}
       <button
         type="submit"
         disabled={loading}
-        className="w-full flex items-center justify-center gap-2 py-3.5 px-6 rounded-xl font-bold text-white text-base transition-opacity hover:opacity-90 disabled:opacity-60"
-        style={{ background: "var(--orange)" }}
+        className="btn btn-primary btn-lg w-full sm:w-auto"
       >
-        {loading ? "Loading..." : "Teach Me This Repo"}
+        {loading ? "Loading Course..." : "Teach Me This Repo"}
         {!loading && <ArrowRightIcon size={18} />}
       </button>
     </form>

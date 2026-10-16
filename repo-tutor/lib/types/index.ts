@@ -78,8 +78,10 @@ export interface LearningPathItem {
 export interface LessonSection {
   type: "explanation" | "code" | "objectives" | "breakdown" | "takeaways" | "exercise";
   content: string;
+  hinglishContent?: string;
   codeSnippet?: CodeSnippet;
   items?: string[];
+  hinglishItems?: string[];
 }
 
 export interface Lesson {

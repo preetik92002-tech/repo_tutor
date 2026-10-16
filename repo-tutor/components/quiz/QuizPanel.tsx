@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import type { Quiz, QuizAnswer } from "@/lib/types";
+import type { Quiz } from "@/lib/types";
 import { CheckCircleIcon, XIcon, RefreshCcwIcon } from "@/components/ui/Icons";
 
 interface QuizPanelProps {
@@ -39,137 +39,145 @@ export default function QuizPanel({ quiz, onComplete }: QuizPanelProps) {
   const allAnswered = quiz.questions.every((q) => answers[q.id]);
 
   return (
-    <div
-      className="rounded-2xl border-2 overflow-hidden"
-      style={{ borderColor: "var(--border)" }}
+    <section
+      aria-labelledby="quiz-heading"
+      className="card card-pop bg-purple-soft p-5 sm:p-6"
     >
       {/* Header */}
-      <div
-        className="px-6 py-4 flex items-center justify-between"
-        style={{ background: "var(--purple)", color: "#fff" }}
-      >
+      <div className="flex flex-wrap items-baseline justify-between gap-2 border-b-2 border-ink pb-4">
         <div>
-          <h3 className="font-bold text-lg">Knowledge Check</h3>
-          <p className="text-sm opacity-80">{quiz.questions.length} questions</p>
+          <p className="eyebrow">Knowledge Check</p>
+          <h2 id="quiz-heading" className="text-2xl sm:text-3xl text-ink">
+            Quick Quiz
+          </h2>
         </div>
-        {phase === "submitted" && (
-          <div className="text-right">
-            <div className="text-3xl font-black">
-              {score}/{quiz.questions.length}
-            </div>
-            <div className="text-sm opacity-80">
-              {score === quiz.questions.length ? "Perfect! 🎉" : score >= quiz.questions.length / 2 ? "Good work!" : "Keep studying!"}
-            </div>
+        {phase === "submitted" ? (
+          <div className="flex items-center gap-2">
+            <span
+              className={`badge py-1 px-3 text-sm font-extrabold ${
+                score === quiz.questions.length
+                  ? "bg-fresh text-ink"
+                  : score >= quiz.questions.length / 2
+                  ? "bg-sun text-ink"
+                  : "bg-white text-ink"
+              }`}
+            >
+              Score: {score} / {quiz.questions.length}
+            </span>
           </div>
+        ) : (
+          <span className="badge bg-white text-muted">
+            {quiz.questions.length} questions
+          </span>
         )}
       </div>
 
-      {/* Questions */}
-      <div className="p-6 space-y-8 bg-white">
+      {/* Questions list */}
+      <ol className="mt-6 space-y-6">
         {quiz.questions.map((q, qi) => {
           const selected = answers[q.id];
           const isCorrect = selected === q.correctOptionId;
 
           return (
-            <div key={q.id}>
-              <p className="font-bold mb-3" style={{ color: "var(--ink)" }}>
-                <span
-                  className="inline-block w-6 h-6 rounded-full text-xs font-black text-white text-center leading-6 mr-2"
-                  style={{ background: "var(--purple)" }}
-                >
-                  {qi + 1}
-                </span>
-                {q.question}
-              </p>
-              <div className="space-y-2">
-                {q.options.map((opt) => {
-                  const isSelected = selected === opt.id;
-                  const isCorrectOpt = opt.id === q.correctOptionId;
-                  let bg = "var(--cream)";
-                  let border = "var(--border)";
-                  let textColor = "var(--ink)";
+            <li key={q.id}>
+              <fieldset>
+                <legend className="font-bold text-base text-ink mb-2">
+                  <span className="font-display font-black text-purple mr-1.5">
+                    {qi + 1}.
+                  </span>
+                  {q.question}
+                </legend>
 
-                  if (phase === "submitted") {
-                    if (isCorrectOpt) {
-                      bg = "#EDFCF2";
-                      border = "#16a34a";
-                      textColor = "#15803d";
-                    } else if (isSelected && !isCorrect) {
-                      bg = "#FEF2F2";
-                      border = "#dc2626";
-                      textColor = "#b91c1c";
+                <div className="mt-2 grid gap-2">
+                  {q.options.map((opt) => {
+                    const isSelected = selected === opt.id;
+                    const isCorrectOpt = opt.id === q.correctOptionId;
+
+                    let optionClasses = "bg-white text-ink hover:bg-cream";
+                    if (phase === "submitted") {
+                      if (isCorrectOpt) {
+                        optionClasses = "bg-fresh text-ink font-bold shadow-pop-sm";
+                      } else if (isSelected && !isCorrect) {
+                        optionClasses = "bg-[#fee2e2] text-[#991b1b]";
+                      }
+                    } else if (isSelected) {
+                      optionClasses = "bg-sun text-ink shadow-pop-sm";
                     }
-                  } else if (isSelected) {
-                    bg = "#F0EBFF";
-                    border = "var(--purple)";
-                  }
 
-                  return (
-                    <button
-                      key={opt.id}
-                      onClick={() => selectOption(q.id, opt.id)}
-                      disabled={phase === "submitted"}
-                      className="w-full text-left px-4 py-3 rounded-xl border-2 text-sm font-medium transition-all flex items-center gap-3"
-                      style={{ background: bg, borderColor: border, color: textColor }}
-                    >
-                      <span
-                        className="w-5 h-5 rounded-full border-2 shrink-0 flex items-center justify-center text-xs"
-                        style={{ borderColor: border }}
+                    return (
+                      <label
+                        key={opt.id}
+                        className={`flex cursor-pointer items-center gap-3 rounded-[10px] border-2 border-ink px-3 py-2.5 text-sm font-semibold transition has-[:focus-visible]:outline has-[:focus-visible]:outline-[3px] has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-purple ${optionClasses}`}
                       >
-                        {phase === "submitted" && isCorrectOpt ? (
-                          <CheckCircleIcon size={14} style={{ color: "#16a34a" } as React.CSSProperties} />
-                        ) : phase === "submitted" && isSelected && !isCorrect ? (
-                          <XIcon size={12} style={{ color: "#dc2626" } as React.CSSProperties} />
-                        ) : isSelected ? (
-                          <span className="w-2.5 h-2.5 rounded-full" style={{ background: "var(--purple)" }} />
-                        ) : null}
-                      </span>
-                      {opt.text}
-                    </button>
-                  );
-                })}
-              </div>
-
-              {/* Explanation (after submit) */}
-              {phase === "submitted" && (
-                <div
-                  className="mt-3 p-3 rounded-xl text-sm"
-                  style={{
-                    background: isCorrect ? "#EDFCF2" : "#FEF2F2",
-                    color: isCorrect ? "#15803d" : "#b91c1c",
-                  }}
-                >
-                  <strong>{isCorrect ? "✓ Correct! " : "✗ Incorrect. "}</strong>
-                  {q.explanation}
+                        <input
+                          type="radio"
+                          name={`quiz-${q.id}`}
+                          value={opt.id}
+                          checked={isSelected}
+                          disabled={phase === "submitted"}
+                          onChange={() => selectOption(q.id, opt.id)}
+                          className="h-4 w-4 accent-purple cursor-pointer"
+                        />
+                        <span className="flex-1">{opt.text}</span>
+                        {phase === "submitted" && isCorrectOpt && (
+                          <CheckCircleIcon size={16} className="text-ink shrink-0" />
+                        )}
+                        {phase === "submitted" && isSelected && !isCorrect && (
+                          <XIcon size={16} className="text-[#991b1b] shrink-0" />
+                        )}
+                      </label>
+                    );
+                  })}
                 </div>
-              )}
-            </div>
+
+                {/* Explanation feedback */}
+                {phase === "submitted" && (
+                  <div
+                    className={`card p-3.5 mt-3 text-sm leading-relaxed ${
+                      isCorrect ? "bg-white text-ink" : "bg-[#fef2f2] text-[#991b1b]"
+                    }`}
+                  >
+                    <p className="font-bold mb-1">
+                      {isCorrect ? "✓ Well done!" : "✗ Explanation:"}
+                    </p>
+                    <p>{q.explanation}</p>
+                  </div>
+                )}
+              </fieldset>
+            </li>
           );
         })}
+      </ol>
 
-        {/* Action buttons */}
-        <div className="pt-2 flex gap-3">
-          {phase === "answering" ? (
+      {/* Action Footer */}
+      <div className="mt-8 pt-4 border-t-2 border-ink flex flex-wrap items-center gap-3">
+        {phase === "answering" ? (
+          <>
             <button
+              type="button"
               onClick={handleSubmit}
               disabled={!allAnswered}
-              className="flex-1 py-3 rounded-xl font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-40"
-              style={{ background: "var(--purple)" }}
+              className="btn btn-purple"
             >
-              Submit Answers
+              Submit answers
             </button>
-          ) : (
-            <button
-              onClick={handleRetry}
-              className="flex items-center gap-2 px-5 py-3 rounded-xl font-bold border-2 transition-all hover:opacity-80"
-              style={{ borderColor: "var(--purple)", color: "var(--purple)" }}
-            >
-              <RefreshCcwIcon size={16} />
-              Try Again
-            </button>
-          )}
-        </div>
+            {!allAnswered && (
+              <span className="text-xs font-semibold text-muted">
+                Answer all {quiz.questions.length} questions to submit.
+              </span>
+            )}
+          </>
+        ) : (
+          <button
+            type="button"
+            onClick={handleRetry}
+            className="btn btn-secondary flex items-center gap-2"
+          >
+            <RefreshCcwIcon size={16} />
+            Try Again
+          </button>
+        )}
       </div>
-    </div>
+    </section>
   );
 }

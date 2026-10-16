@@ -14,10 +14,7 @@ import type {
   CodeSnippet,
   GlobalProgress,
   RepoProgress,
-  LessonProgress,
   LessonStatus,
-  LanguagePreference,
-  SkillLevel,
 } from "../types";
 
 import {
@@ -79,18 +76,131 @@ export function getCourse(owner: string, name: string): Course | null {
 
 /** Get a single lesson by its ID */
 export function getLesson(lessonId: string): Lesson | null {
-  return DEMO_LESSONS[lessonId] ?? null;
+  if (DEMO_LESSONS[lessonId]) return DEMO_LESSONS[lessonId];
+  for (const course of Object.values(DEMO_COURSES)) {
+    const item = course.learningPath.find((l) => l.id === lessonId);
+    if (item) {
+      return {
+        id: item.id,
+        repoId: course.repoId,
+        lessonNumber: item.lessonNumber,
+        title: item.title,
+        objective: item.objective,
+        estimatedMinutes: item.estimatedMinutes,
+        status: item.status,
+        sections: [
+          {
+            type: "explanation",
+            content: `In this lesson, we study "${item.title}". You will explore how the maintainers designed this module, why these patterns were chosen, and how they fit into the broader system architecture.`,
+            hinglishContent: `Is lesson mein hum "${item.title}" ko detail mein samjhenge. Maintainers ne is module ko kaise design kiya aur yeh overall system architecture mein kaise fit hota hai, yeh step-by-step explore karenge.`,
+          },
+          {
+            type: "objectives",
+            content: "Key objectives for this lesson:",
+            items: [
+              `Master the concepts behind ${item.title}`,
+              "Examine the source code structure and core abstractions",
+              "Follow open-source coding best practices",
+            ],
+            hinglishItems: [
+              `${item.title} ke core concepts ko master karna`,
+              "Source code structure aur core abstractions ko dekhna",
+              "Open-source coding ke best practices follow karna",
+            ],
+          },
+          {
+            type: "code",
+            content: `Core implementation pattern for ${item.title}:`,
+            codeSnippet: {
+              filename: `${item.id}.ts`,
+              path: `src/${item.id}.ts`,
+              language: "typescript",
+              content: `// Repo Tutor — Lesson ${item.lessonNumber}: ${item.title}\nexport interface ConfigOptions {\n  enabled: boolean;\n  timeoutMs?: number;\n  debug?: boolean;\n}\n\nexport function initializeModule(options: ConfigOptions) {\n  if (!options.enabled) {\n    return null;\n  }\n  return {\n    ready: true,\n    timeout: options.timeoutMs ?? 5000,\n    initializedAt: new Date().toISOString(),\n  };\n}`,
+            },
+          },
+          {
+            type: "breakdown",
+            content: "Important lines explained:",
+            items: [
+              "Lines 2-6: TypeScript interface specifies optional and required configuration",
+              "Lines 8-11: Early return pattern handles disabled feature toggles cleanly",
+              "Lines 12-16: Nullish coalescing provides safe fallback timeout values",
+            ],
+          },
+          {
+            type: "takeaways",
+            content: "Key takeaways:",
+            items: [
+              "Favor early returns over deeply nested conditionals",
+              "Use TypeScript interfaces to provide compile-time guarantees",
+              "Document defaults and edge-case behaviors in code comments",
+            ],
+          },
+          {
+            type: "exercise",
+            content: `Practical Exercise: Extend initializeModule to accept a custom logger callback and invoke it when options.debug is true.`,
+          },
+        ],
+      };
+    }
+  }
+  return null;
 }
 
 /** Get all lessons for a repository */
 export function getLessonsForRepo(owner: string, name: string): Lesson[] {
   const id = buildRepoId(owner, name);
-  return Object.values(DEMO_LESSONS).filter((l) => l.repoId === id);
+  const course = DEMO_COURSES[id];
+  if (!course) return [];
+  return course.learningPath.map((item) => getLesson(item.id)!);
 }
 
 /** Get the quiz for a lesson */
 export function getQuiz(lessonId: string): Quiz | null {
-  return DEMO_QUIZZES[lessonId] ?? null;
+  if (DEMO_QUIZZES[lessonId]) return DEMO_QUIZZES[lessonId];
+  const lesson = getLesson(lessonId);
+  if (!lesson) return null;
+  return {
+    lessonId,
+    questions: [
+      {
+        id: `${lessonId}-q1`,
+        question: `What is the core purpose of "${lesson.title}"?`,
+        options: [
+          { id: "a", text: lesson.objective },
+          { id: "b", text: "To disable all type checking across the project" },
+          { id: "c", text: "To overwrite configuration files without validation" },
+          { id: "d", text: "To replace client rendering entirely" },
+        ],
+        correctOptionId: "a",
+        explanation: `As detailed in the lesson objectives: "${lesson.objective}".`,
+      },
+      {
+        id: `${lessonId}-q2`,
+        question: "Why are typed interfaces beneficial in large open-source projects?",
+        options: [
+          { id: "a", text: "They inflate bundle size significantly" },
+          { id: "b", text: "They provide contract clarity, catch typos, and enable IDE autocomplete" },
+          { id: "c", text: "They prevent third-party contributions" },
+          { id: "d", text: "They execute at runtime to block slow network requests" },
+        ],
+        correctOptionId: "b",
+        explanation: "Typed interfaces clarify expectations between modules and eliminate entire classes of runtime errors before code is deployed.",
+      },
+      {
+        id: `${lessonId}-q3`,
+        question: "What is the recommended approach when modifying this module?",
+        options: [
+          { id: "a", text: "Commit without verifying existing tests or typings" },
+          { id: "b", text: "Understand the control flow, maintain backwards compatibility, and test changes" },
+          { id: "c", text: "Force compile errors to be ignored" },
+          { id: "d", text: "Rewrite the build pipeline" },
+        ],
+        correctOptionId: "b",
+        explanation: "Good open-source maintainers ensure changes preserve backward compatibility and are validated by automated test suites.",
+      },
+    ],
+  };
 }
 
 // ─── Code Explorer ───────────────────────────────────────────
@@ -102,13 +212,40 @@ export function getFileTree(owner: string, name: string): TreeNode[] {
 }
 
 /** Get explanation for a file path */
-export function getFileExplanation(filePath: string): FileExplanation | null {
-  return DEMO_FILE_EXPLANATIONS[filePath] ?? null;
+export function getFileExplanation(filePath: string): FileExplanation {
+  if (DEMO_FILE_EXPLANATIONS[filePath]) return DEMO_FILE_EXPLANATIONS[filePath];
+  const parts = filePath.split("/");
+  const fileName = parts[parts.length - 1];
+  return {
+    path: filePath,
+    summary: `Source file "${fileName}" in this repository. It provides key implementation logic and module exports used across the architecture.`,
+    importantFunctions: [
+      {
+        name: fileName.replace(/\.[^/.]+$/, ""),
+        description: `Primary export or handler associated with ${fileName}.`,
+      },
+      {
+        name: "initialize",
+        description: "Initializes the module runtime settings and dependencies.",
+      },
+    ],
+    relatedFiles: parts.length > 1 ? [parts.slice(0, -1).join("/") + "/index.js"] : [],
+  };
 }
 
 /** Get the code snippet for a file path */
-export function getCodeFile(filePath: string): CodeSnippet | null {
-  return DEMO_CODE_FILES[filePath] ?? null;
+export function getCodeFile(filePath: string): CodeSnippet {
+  if (DEMO_CODE_FILES[filePath]) return DEMO_CODE_FILES[filePath];
+  const parts = filePath.split("/");
+  const fileName = parts[parts.length - 1];
+  const ext = fileName.split(".").pop() || "js";
+  const lang = ext === "ts" || ext === "tsx" ? "typescript" : ext === "json" ? "json" : "javascript";
+  return {
+    filename: fileName,
+    path: filePath,
+    language: lang,
+    content: `/**\n * Repo Tutor — Code Explorer\n * Path: ${filePath}\n */\n\n// Module configuration and public exports\nexport const VERSION = "1.0.0";\n\nexport function initialize(options = {}) {\n  console.log("Initializing ${fileName} with options:", options);\n  return {\n    status: "active",\n    timestamp: Date.now(),\n  };\n}\n\nexport default initialize;`,
+  };
 }
 
 // ─── Progress (browser-persisted) ────────────────────────────

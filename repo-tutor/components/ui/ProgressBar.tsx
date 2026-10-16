@@ -9,30 +9,31 @@ interface ProgressBarProps {
 
 export function ProgressBar({
   value,
-  color = "var(--orange)",
-  height = 8,
+  color = "var(--green)",
+  height = 16,
   label,
 }: ProgressBarProps) {
   const pct = Math.min(100, Math.max(0, value));
   return (
     <div className="w-full">
       {label && (
-        <div className="flex justify-between text-xs mb-1" style={{ color: "var(--ink-muted)" }}>
+        <div className="flex justify-between text-xs font-bold mb-1.5 text-muted">
           <span>{label}</span>
-          <span>{pct}%</span>
+          <span className="font-mono text-ink">{pct}%</span>
         </div>
       )}
       <div
-        className="w-full rounded-full overflow-hidden"
-        style={{ background: "var(--border)", height }}
+        className="w-full rounded-full border-2 border-ink bg-white overflow-hidden"
+        style={{ height }}
         role="progressbar"
         aria-valuenow={pct}
         aria-valuemin={0}
         aria-valuemax={100}
+        aria-label={label || "Course progress"}
       >
         <div
-          className="h-full rounded-full transition-all duration-500"
-          style={{ width: `${pct}%`, background: color }}
+          className="h-full transition-[width] duration-300"
+          style={{ width: `${pct}%`, backgroundColor: color }}
         />
       </div>
     </div>

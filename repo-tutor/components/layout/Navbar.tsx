@@ -2,101 +2,114 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { MenuIcon, XIcon, CodeIcon } from "@/components/ui/Icons";
+import { usePathname } from "next/navigation";
+import { MenuIcon, XIcon } from "@/components/ui/Icons";
+
+export function BrandLogo() {
+  return (
+    <span className="group inline-flex items-center gap-2">
+      <svg
+        aria-hidden="true"
+        viewBox="0 0 36 36"
+        width="34"
+        height="34"
+        className="transition-transform group-hover:-rotate-6"
+      >
+        <rect x="3" y="14" width="30" height="19" rx="4" fill="#FF6B35" stroke="#202020" strokeWidth="2.5" />
+        <rect x="7" y="6" width="8" height="8" rx="2" fill="#FF6B35" stroke="#202020" strokeWidth="2.5" />
+        <rect x="21" y="6" width="8" height="8" rx="2" fill="#FF6B35" stroke="#202020" strokeWidth="2.5" />
+        <path
+          d="M14 20l-4 4 4 4M22 20l4 4-4 4"
+          fill="none"
+          stroke="#202020"
+          strokeWidth="2.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+      <span className="font-display text-xl font-black tracking-tight text-ink">
+        Repo Tutor
+      </span>
+    </span>
+  );
+}
 
 export default function Navbar() {
   const [open, setOpen] = useState(false);
+  const pathname = usePathname();
+
+  const isExplore = pathname === "/explore";
+  const isProgress = pathname === "/progress";
 
   return (
-    <header
-      className="sticky top-0 z-50 border-b"
-      style={{
-        background: "var(--cream)",
-        borderColor: "var(--border)",
-      }}
-    >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
-          {/* Logo */}
+    <header className="sticky top-0 z-40 border-b-2 border-ink bg-cream">
+      <div className="container-page flex h-16 items-center justify-between">
+        {/* Logo */}
+        <Link href="/" aria-label="Repo Tutor home">
+          <BrandLogo />
+        </Link>
+
+        {/* Desktop nav */}
+        <nav aria-label="Main" className="hidden items-center gap-6 md:flex">
           <Link
-            href="/"
-            className="flex items-center gap-2 font-bold text-xl hover:opacity-80 transition-opacity"
-            style={{ color: "var(--ink)" }}
+            href="/explore"
+            className={`text-sm font-bold underline-offset-8 hover:underline hover:decoration-orange hover:decoration-4 ${
+              isExplore ? "underline decoration-orange decoration-4" : ""
+            }`}
           >
-            <span
-              className="flex items-center justify-center w-8 h-8 rounded-lg text-white text-sm font-bold"
-              style={{ background: "var(--orange)" }}
-            >
-              <CodeIcon size={16} />
-            </span>
-            <span>
-              Repo<span style={{ color: "var(--orange)" }}>Tutor</span>
-            </span>
+            Explore
           </Link>
-
-          {/* Desktop nav */}
-          <nav className="hidden md:flex items-center gap-6">
-            <Link
-              href="/explore"
-              className="text-sm font-medium transition-colors hover:opacity-70"
-              style={{ color: "var(--ink-muted)" }}
-            >
-              Explore
-            </Link>
-            <Link
-              href="/progress"
-              className="text-sm font-medium transition-colors hover:opacity-70"
-              style={{ color: "var(--ink-muted)" }}
-            >
-              My Progress
-            </Link>
-            <Link
-              href="/#hero"
-              className="px-4 py-2 rounded-lg text-sm font-semibold text-white transition-opacity hover:opacity-90"
-              style={{ background: "var(--orange)" }}
-            >
-              Start Learning
-            </Link>
-          </nav>
-
-          {/* Mobile menu button */}
-          <button
-            className="md:hidden p-2 rounded-lg hover:bg-black/5 transition-colors"
-            onClick={() => setOpen((prev) => !prev)}
-            aria-label="Toggle menu"
-            aria-expanded={open}
+          <Link
+            href="/progress"
+            className={`text-sm font-bold underline-offset-8 hover:underline hover:decoration-orange hover:decoration-4 ${
+              isProgress ? "underline decoration-orange decoration-4" : ""
+            }`}
           >
-            {open ? <XIcon size={20} /> : <MenuIcon size={20} />}
-          </button>
-        </div>
+            My Progress
+          </Link>
+          <Link href="/#hero" className="btn btn-primary">
+            Start Learning
+          </Link>
+        </nav>
+
+        {/* Mobile menu button */}
+        <button
+          type="button"
+          className="btn btn-secondary px-3 py-2 md:hidden"
+          onClick={() => setOpen((prev) => !prev)}
+          aria-label="Toggle menu"
+          aria-expanded={open}
+        >
+          {open ? <XIcon size={20} /> : <MenuIcon size={20} />}
+        </button>
       </div>
 
       {/* Mobile nav drawer */}
       {open && (
         <div
-          className="md:hidden border-t px-4 py-4 space-y-3"
-          style={{ borderColor: "var(--border)", background: "var(--cream)" }}
+          className="border-b-2 border-ink bg-cream px-4 py-4 space-y-3 md:hidden"
         >
           <Link
             href="/explore"
-            className="block text-sm font-medium py-2"
-            style={{ color: "var(--ink-muted)" }}
+            className={`block text-sm font-bold py-2 ${
+              isExplore ? "text-purple underline decoration-orange decoration-2" : "text-ink"
+            }`}
             onClick={() => setOpen(false)}
           >
             Explore
           </Link>
           <Link
             href="/progress"
-            className="block text-sm font-medium py-2"
-            style={{ color: "var(--ink-muted)" }}
+            className={`block text-sm font-bold py-2 ${
+              isProgress ? "text-purple underline decoration-orange decoration-2" : "text-ink"
+            }`}
             onClick={() => setOpen(false)}
           >
             My Progress
           </Link>
           <Link
             href="/#hero"
-            className="block px-4 py-2 rounded-lg text-sm font-semibold text-white text-center"
-            style={{ background: "var(--orange)" }}
+            className="btn btn-primary w-full text-center"
             onClick={() => setOpen(false)}
           >
             Start Learning

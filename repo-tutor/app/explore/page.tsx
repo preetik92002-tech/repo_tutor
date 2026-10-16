@@ -18,7 +18,7 @@ export default function ExplorePage() {
   const [category, setCategory] = useState<"all" | RepoCategory>("all");
 
   const filtered = useMemo(() => {
-    const q = query.toLowerCase();
+    const q = query.toLowerCase().trim();
     return DEMO_REPOSITORIES.filter((r) => {
       const matchesCat = category === "all" || r.category === category;
       const matchesSearch =
@@ -31,124 +31,98 @@ export default function ExplorePage() {
   }, [query, category]);
 
   return (
-    <div
-      className="min-h-screen"
-      style={{ background: "var(--cream)" }}
-    >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-        {/* Header */}
-        <div className="text-center mb-12">
-          <h1
-            className="text-4xl sm:text-5xl font-black tracking-tight mb-4"
-            style={{ color: "var(--ink)" }}
-          >
-            Find a Codebase
-            <br />
-            <span style={{ color: "var(--purple)" }}>Worth Understanding.</span>
-          </h1>
-          <p className="text-lg max-w-xl mx-auto" style={{ color: "var(--ink-muted)" }}>
-            Browse our demo repository collection. Each one comes with a full structured learning course.
-          </p>
-        </div>
+    <div className="container-page py-10 sm:py-14">
+      <p className="eyebrow">Explore</p>
+      <h1 className="mt-2 max-w-3xl text-4xl sm:text-5xl text-ink">
+        Find a Codebase Worth Understanding.
+      </h1>
+      <p className="mt-3 max-w-2xl text-muted">
+        Pick a demo repository to try a full guided course. More repositories arrive once the
+        backend is connected.
+      </p>
 
-        {/* Search + Filters */}
-        <div className="flex flex-col sm:flex-row gap-4 mb-10">
-          {/* Search */}
-          <div className="relative flex-1">
-            <SearchIcon
-              size={16}
-              className="absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none"
-              style={{ color: "var(--ink-muted)" } as React.CSSProperties}
-            />
-            <input
-              type="search"
-              placeholder="Search repositories..."
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 rounded-xl border-2 text-sm bg-white outline-none transition-all"
-              style={{ borderColor: "var(--border)" }}
-              onFocus={(e) => (e.currentTarget.style.borderColor = "var(--purple)")}
-              onBlur={(e) => (e.currentTarget.style.borderColor = "var(--border)")}
-            />
-          </div>
-
-          {/* Category filters */}
-          <div className="flex gap-2">
-            {CATEGORIES.map((cat) => (
-              <button
-                key={cat.id}
-                onClick={() => setCategory(cat.id)}
-                className="px-4 py-2.5 rounded-xl text-sm font-semibold border-2 transition-all whitespace-nowrap"
-                style={
-                  category === cat.id
-                    ? { background: "var(--purple)", color: "#fff", borderColor: "var(--purple)" }
-                    : { background: "var(--white)", color: "var(--ink-muted)", borderColor: "var(--border)" }
-                }
+      <div className="mt-8">
+        <div>
+          {/* Search + Category Filter Bar */}
+          <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+            <div className="w-full md:max-w-md">
+              <label
+                htmlFor="explore-search"
+                className="mb-1.5 block text-xs font-extrabold uppercase tracking-wider text-muted"
               >
-                {cat.label}
-              </button>
-            ))}
-          </div>
-        </div>
+                Search repositories
+              </label>
+              <div className="relative">
+                <SearchIcon
+                  size={18}
+                  className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted"
+                />
+                <input
+                  id="explore-search"
+                  type="search"
+                  placeholder="Try react, next, or express"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  className="w-full rounded-[10px] border-2 border-ink bg-white py-3 pl-10 pr-3 text-base text-ink focus:outline-none"
+                />
+              </div>
+            </div>
 
-        {/* Results */}
-        {filtered.length === 0 ? (
-          <EmptyState query={query} category={category} onReset={() => { setQuery(""); setCategory("all"); }} />
-        ) : (
-          <>
-            <p className="text-sm mb-6" style={{ color: "var(--ink-muted)" }}>
-              {filtered.length} {filtered.length === 1 ? "repository" : "repositories"} found
-            </p>
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filtered.map((r) => (
-                <RepoCard key={r.id} repo={r} />
+            {/* Category Filter Buttons */}
+            <div role="group" aria-label="Filter by category" className="flex flex-wrap gap-2">
+              {CATEGORIES.map((cat) => (
+                <button
+                  key={cat.id}
+                  type="button"
+                  aria-pressed={category === cat.id}
+                  onClick={() => setCategory(cat.id)}
+                  className={`rounded-lg border-2 border-ink px-3.5 py-2 text-sm font-bold transition ${
+                    category === cat.id
+                      ? "bg-purple text-white shadow-pop-sm"
+                      : "bg-white text-ink hover:bg-sun"
+                  }`}
+                >
+                  {cat.label}
+                </button>
               ))}
             </div>
-          </>
-        )}
+          </div>
 
-        {/* Demo note */}
-        <div
-          className="mt-14 p-5 rounded-2xl border-2 text-center"
-          style={{ borderColor: "var(--yellow)", background: "#FFFDE7" }}
-        >
-          <p className="text-sm font-medium" style={{ color: "#78350f" }}>
-            📚 <strong>Demo mode</strong> — These are hand-curated sample repositories. All courses use local content, not live GitHub data.
-            A real backend can serve any public repository once built.
+          {/* Results count */}
+          <p className="mt-5 text-sm text-muted" aria-live="polite">
+            {filtered.length} {filtered.length === 1 ? "repository" : "repositories"} shown
           </p>
+
+          {/* Repos Grid */}
+          {filtered.length === 0 ? (
+            <div className="card card-pop mt-6 p-10 text-center space-y-4">
+              <div className="text-4xl">🔍</div>
+              <h3 className="text-xl font-black text-ink">No repositories found</h3>
+              <p className="text-sm text-muted max-w-md mx-auto">
+                {query && <>No matches for &quot;{query}&quot;. </>}
+                {category !== "all" && <>No {category} repositories available. </>}
+                Try searching for another keyword or clearing your filter.
+              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  setQuery("");
+                  setCategory("all");
+                }}
+                className="btn btn-secondary"
+              >
+                Clear filters
+              </button>
+            </div>
+          ) : (
+            <div className="mt-4 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+              {filtered.map((r) => (
+                <RepoCard key={r.id} repo={r} actionLabel="Start Learning" />
+              ))}
+            </div>
+          )}
         </div>
       </div>
-    </div>
-  );
-}
-
-function EmptyState({
-  query,
-  category,
-  onReset,
-}: {
-  query: string;
-  category: string;
-  onReset: () => void;
-}) {
-  return (
-    <div className="text-center py-20 space-y-4">
-      <div className="text-5xl mb-4">🔍</div>
-      <h3 className="text-xl font-bold" style={{ color: "var(--ink)" }}>
-        No repositories found
-      </h3>
-      <p style={{ color: "var(--ink-muted)" }}>
-        {query && <>No matches for &quot;{query}&quot;. </>}
-        {category !== "all" && <>No {category} repositories available. </>}
-        Try a different search or category.
-      </p>
-      <button
-        onClick={onReset}
-        className="mt-2 px-5 py-2.5 rounded-xl font-semibold text-sm border-2 transition-all hover:opacity-80"
-        style={{ borderColor: "var(--orange)", color: "var(--orange)", background: "var(--white)" }}
-      >
-        Clear filters
-      </button>
     </div>
   );
 }

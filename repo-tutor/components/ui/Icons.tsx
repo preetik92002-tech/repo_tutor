@@ -7,12 +7,14 @@ type IconProps = {
   size?: number;
   className?: string;
   strokeWidth?: number;
+  style?: React.CSSProperties;
 };
 
 const Icon = ({
   size = 20,
   className = "",
   strokeWidth = 2,
+  style,
   children,
 }: IconProps & { children: React.ReactNode }) => (
   <svg
@@ -26,6 +28,7 @@ const Icon = ({
     strokeLinecap="round"
     strokeLinejoin="round"
     className={className}
+    style={style}
   >
     {children}
   </svg>

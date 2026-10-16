@@ -1,33 +1,39 @@
 @import "tailwindcss";
 
 /* ============================================================
-   Repo Tutor — Design System
+   Repo Tutor — Hacktoberfest-Inspired Design System
    ============================================================ */
 
 :root {
   /* Brand colors */
-  --cream: #FFF8EC;
-  --orange: #FF6B35;
-  --orange-dark: #e55a28;
-  --purple: #7447EB;
-  --purple-light: #9b72ef;
-  --yellow: #FFD84D;
-  --green: #B8E986;
+  --cream: #fff8ec;
+  --cream-deep: #fbeed6;
+  --orange: #ff6b35;
+  --orange-dark: #d94e1a;
+  --purple: #7447eb;
+  --purple-soft: #ece6ff;
+  --yellow: #ffd84d;
+  --green: #b8e986;
   --ink: #202020;
-  --ink-muted: #6B6557;
-  --white: #FFFFFF;
-  --border: #E8DDD0;
-  --code-bg: #1e1e2e;
+  --muted: #5f564b;
+  --line: #202020;
+  --border: #202020;
+  --code-bg: #ffffff;
+
+  /* Typography */
+  --font-display: "Arial Rounded MT Bold", "Arial Black", "Segoe UI Black", "Helvetica Neue", system-ui, sans-serif;
+  --font-body: "Segoe UI", "Helvetica Neue", Arial, system-ui, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", "Cascadia Code", Menlo, Consolas, monospace;
 }
 
 @theme inline {
   --color-background: var(--cream);
   --color-foreground: var(--ink);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-body);
+  --font-mono: var(--font-mono);
 }
 
-/* Reset dark mode override */
+/* Reset dark mode override — maintain warm festival cream palette */
 @media (prefers-color-scheme: dark) {
   :root {
     --background: var(--cream);
@@ -37,82 +43,208 @@
 
 html {
   scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
 }
 
 body {
   background: var(--cream);
   color: var(--ink);
-  font-family: var(--font-sans), system-ui, sans-serif;
+  font-family: var(--font-body);
+  line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   min-height: 100vh;
+  overflow-x: hidden;
 }
 
-/* ─── Code blocks ─────────────────────────────────────────── */
-
-.code-block {
-  background: var(--code-bg);
-  color: #cdd6f4;
-  border-radius: 8px;
-  overflow: auto;
-  font-family: var(--font-mono), 'Courier New', monospace;
-  font-size: 0.875rem;
-  line-height: 1.6;
-  tab-size: 2;
+h1, h2, h3, h4 {
+  font-family: var(--font-display);
+  letter-spacing: -0.02em;
+  font-weight: 900;
+  line-height: 1.12;
 }
-
-.code-line-number {
-  color: #585b70;
-  user-select: none;
-  min-width: 2.5rem;
-  padding-right: 1rem;
-  text-align: right;
-}
-
-/* ─── Syntax token colors ─────────────────────────────────── */
-.token-keyword    { color: #cba6f7; }
-.token-string     { color: #a6e3a1; }
-.token-comment    { color: #6c7086; font-style: italic; }
-.token-function   { color: #89b4fa; }
-.token-number     { color: #fab387; }
-.token-operator   { color: #89dceb; }
-.token-type       { color: #f38ba8; }
-.token-punctuation { color: #89dceb; }
-.token-variable   { color: #cdd6f4; }
-
-/* ─── Scrollbar ───────────────────────────────────────────── */
-::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: var(--ink-muted); }
 
 /* ─── Focus states ────────────────────────────────────────── */
 :focus-visible {
-  outline: 2px solid var(--orange);
+  outline: 3px solid var(--purple);
   outline-offset: 2px;
-  border-radius: 4px;
+  border-radius: 6px;
 }
 
-/* ─── Transitions ─────────────────────────────────────────── */
-.transition-base {
-  transition: all 0.15s ease;
+::selection {
+  background: var(--yellow);
+  color: var(--ink);
 }
 
-/* ─── Geometric decorative elements ──────────────────────── */
-.dot-grid {
-  background-image: radial-gradient(circle, var(--border) 1px, transparent 1px);
-  background-size: 20px 20px;
+/* ─── Page Container ──────────────────────────────────────── */
+.container-page {
+  width: 100%;
+  max-width: 72rem;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 1rem;
+  padding-right: 1rem;
 }
 
-/* ─── Badge chip ──────────────────────────────────────────── */
-.badge {
+@media (min-width: 640px) {
+  .container-page {
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+  }
+}
+
+/* ─── Neo-Brutalist Buttons ───────────────────────────────── */
+.btn {
+  border-width: 2px;
+  border-color: var(--ink);
+  box-shadow: 3px 3px 0 0 var(--ink);
+  border-radius: 10px;
+  justify-content: center;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1.25rem;
+  font-size: 0.875rem;
+  font-weight: 700;
+  line-height: 1.25rem;
   display: inline-flex;
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.btn:hover:not(:disabled) {
+  box-shadow: 4px 4px 0 0 var(--ink);
+  transform: translate(-1px, -1px);
+}
+
+.btn:active:not(:disabled) {
+  box-shadow: 1px 1px 0 0 var(--ink);
+  transform: translate(2px, 2px);
+}
+
+.btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.btn-primary {
+  background-color: var(--orange);
+  color: var(--ink);
+}
+
+.btn-secondary {
+  background-color: #ffffff;
+  color: var(--ink);
+}
+
+.btn-purple {
+  background-color: var(--purple);
+  color: #ffffff;
+}
+
+.btn-lg {
+  padding: 0.875rem 1.75rem;
+  font-size: 1rem;
+  line-height: 1.5rem;
+}
+
+/* ─── Neo-Brutalist Cards ─────────────────────────────────── */
+.card {
+  border-width: 2px;
+  border-color: var(--ink);
+  background-color: #ffffff;
+  border-radius: 14px;
+}
+
+.card-pop {
+  box-shadow: 4px 4px 0 0 var(--ink);
+}
+
+.shadow-pop {
+  box-shadow: 4px 4px 0 0 var(--ink);
+}
+
+.shadow-pop-sm {
+  box-shadow: 2px 2px 0 0 var(--ink);
+}
+
+/* ─── Stickers & Badges ───────────────────────────────────── */
+.badge {
+  border-width: 2px;
+  border-color: var(--ink);
+  background-color: #ffffff;
+  border-radius: 999px;
   align-items: center;
   gap: 0.25rem;
-  padding: 0.25rem 0.625rem;
-  border-radius: 9999px;
+  padding: 0.125rem 0.625rem;
   font-size: 0.75rem;
-  font-weight: 600;
-  letter-spacing: 0.025em;
+  font-weight: 700;
+  line-height: 1rem;
+  display: inline-flex;
   white-space: nowrap;
 }
+
+.eyebrow {
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  color: var(--purple);
+  font-size: 0.75rem;
+  font-weight: 800;
+  line-height: 1rem;
+}
+
+/* ─── Color Helpers ───────────────────────────────────────── */
+.bg-cream { background-color: var(--cream); }
+.bg-cream-deep { background-color: var(--cream-deep); }
+.bg-orange { background-color: var(--orange); }
+.bg-purple { background-color: var(--purple); }
+.bg-purple-soft { background-color: var(--purple-soft); }
+.bg-sun { background-color: var(--yellow); }
+.bg-fresh { background-color: var(--green); }
+.bg-white { background-color: #ffffff; }
+
+.text-ink { color: var(--ink); }
+.text-muted { color: var(--muted); }
+.text-purple { color: var(--purple); }
+.text-orange { color: var(--orange); }
+.text-sun { color: var(--yellow); }
+
+.border-ink { border-color: var(--ink); }
+
+/* ─── Code Viewer & Syntax Colors ─────────────────────────── */
+.code-scroll {
+  overflow-x: auto;
+}
+
+.code-block {
+  background: #ffffff;
+  color: var(--ink);
+  border-radius: 12px;
+  overflow: auto;
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  line-height: 1.6;
+}
+
+.code-line-number {
+  color: #7a7266;
+  user-select: none;
+  min-width: 2.25rem;
+  padding-right: 0.75rem;
+  text-align: right;
+  opacity: 0.7;
+}
+
+.tok-keyword  { color: #7447eb; font-weight: 700; }
+.tok-string   { color: #b34a14; }
+.tok-comment  { color: #7a7266; font-style: italic; }
+.tok-fn       { color: #1d5fd1; font-weight: 600; }
+.tok-number   { color: #0b7a4b; font-weight: 600; }
+.tok-operator { color: #d94e1a; }
+.tok-type     { color: #7447eb; }
+
+/* ─── Scrollbars ──────────────────────────────────────────── */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: var(--cream-deep); }
+::-webkit-scrollbar-thumb { background: var(--ink); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: var(--orange); }

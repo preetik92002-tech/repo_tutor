@@ -1,78 +1,75 @@
 import Link from "next/link";
 import type { Repository } from "@/lib/types";
-import { Badge } from "@/components/ui/Badge";
-import { StarIcon, ArrowRightIcon } from "@/components/ui/Icons";
+import { ArrowRightIcon } from "@/components/ui/Icons";
 
 interface RepoCardProps {
   repo: Repository;
+  actionLabel?: string;
 }
 
-function formatStars(n: number): string {
-  if (n >= 1000) return `${(n / 1000).toFixed(0)}k`;
-  return String(n);
-}
+export default function RepoCard({ repo, actionLabel = "Explore Course" }: RepoCardProps) {
+  const categoryHeaderBg =
+    repo.category === "frontend"
+      ? "bg-sun"
+      : repo.category === "fullstack"
+      ? "bg-purple-soft"
+      : "bg-fresh";
 
-export default function RepoCard({ repo }: RepoCardProps) {
-  const categoryColors: Record<string, "orange" | "purple" | "green"> = {
-    frontend: "orange",
-    backend: "purple",
-    fullstack: "green",
-  };
+  const categoryLabel =
+    repo.category === "frontend"
+      ? "Frontend"
+      : repo.category === "backend"
+      ? "Backend"
+      : "Full Stack";
 
   return (
-    <article
-      className="flex flex-col p-5 rounded-2xl border-2 bg-white hover:border-opacity-80 transition-all hover:shadow-md group"
-      style={{ borderColor: "var(--border)" }}
+    <Link
+      href={`/repo/${repo.owner}/${repo.name}`}
+      className="card card-pop group flex h-full flex-col overflow-hidden transition duration-150 hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[6px_6px_0_0_var(--ink)]"
     >
-      {/* Header */}
-      <div className="flex items-start justify-between gap-3 mb-3">
-        <div>
-          <h3
-            className="font-bold text-base leading-tight"
-            style={{ color: "var(--ink)" }}
-          >
-            {repo.fullName}
-          </h3>
-          <div className="flex items-center gap-1 mt-1 text-xs" style={{ color: "var(--ink-muted)" }}>
-            <StarIcon size={11} />
-            <span>{formatStars(repo.stars)}</span>
-          </div>
-        </div>
-        <Badge variant={categoryColors[repo.category] ?? "muted"}>
-          {repo.category}
-        </Badge>
+      {/* Top Banner Bar */}
+      <div
+        className={`flex items-center justify-between border-b-2 border-ink px-4 py-2 ${categoryHeaderBg}`}
+      >
+        <span className="text-xs font-extrabold uppercase tracking-wider text-ink">
+          {categoryLabel}
+        </span>
+        <span className="text-xs font-bold text-ink">Demo course</span>
       </div>
 
-      {/* Description */}
-      <p
-        className="text-sm leading-relaxed flex-1 mb-4"
-        style={{ color: "var(--ink-muted)" }}
-      >
-        {repo.description}
-      </p>
+      {/* Main Body */}
+      <div className="flex flex-1 flex-col gap-3 p-5">
+        <h3
+          className="break-words font-mono text-lg font-extrabold tracking-tight text-ink"
+          style={{ fontFamily: "var(--font-mono)" }}
+        >
+          {repo.owner}
+          <span className="text-muted">/</span>
+          {repo.name}
+        </h3>
 
-      {/* Topics */}
-      <div className="flex flex-wrap gap-1.5 mb-4">
-        {repo.topics.slice(0, 4).map((t) => (
-          <Badge key={t} variant="muted">
-            {t}
-          </Badge>
-        ))}
+        <p className="text-sm text-muted leading-relaxed line-clamp-3">
+          {repo.description}
+        </p>
+
+        {/* Technologies / Topics */}
+        <ul className="flex flex-wrap gap-2" aria-label="Technologies">
+          {repo.topics.slice(0, 4).map((t) => (
+            <li key={t}>
+              <span className="badge bg-white">{t}</span>
+            </li>
+          ))}
+        </ul>
+
+        {/* Footer Link */}
+        <span className="mt-auto inline-flex items-center gap-1.5 pt-2 text-sm font-extrabold text-purple group-hover:underline decoration-orange decoration-2 underline-offset-4">
+          {actionLabel}
+          <ArrowRightIcon
+            size={16}
+            className="transition-transform group-hover:translate-x-1"
+          />
+        </span>
       </div>
-
-      {/* Action */}
-      <Link
-        href={`/repo/${repo.owner}/${repo.name}`}
-        className="flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl text-sm font-semibold transition-all group-hover:opacity-90"
-        style={{
-          background: "var(--cream)",
-          color: "var(--orange)",
-          border: "2px solid var(--orange)",
-        }}
-      >
-        Explore Course
-        <ArrowRightIcon size={14} />
-      </Link>
-    </article>
+    </Link>
   );
 }
