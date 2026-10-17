@@ -1,93 +1,112 @@
-# Repo Tutor 🚀
-> *"Understand Any Codebase. Learn It Step by Step."*
+# Repo Tutor
 
-Repo Tutor is a student-focused, AI-powered GitHub repository learning platform inspired by the playful, community-driven aesthetic of Hacktoberfest. Instead of overwhelming documentation dumps, it transforms public repositories into structured, ordered lessons, interactive quizzes, syntax-highlighted code walkthroughs, and progress tracking in English and Hinglish.
+> Understand an unfamiliar GitHub repository, step by step.
 
----
+Repo Tutor reads a **public GitHub repository**, works out its structure, and turns what it finds into a short guided course: lessons, line-numbered code excerpts, a quiz per lesson, and saved progress, in English or Hinglish. An optional, clearly labelled "Ask the tutor" feature uses a small **open-weight model running locally through Ollama**.
 
-## 🎨 Design System & Visual Identity
-- **Warm Cream (`#FFF8EC`)**: Primary page background.
-- **Festival Orange (`#FF6B35`)**: Primary CTA and actionable highlights.
-- **Electric Purple (`#7447EB`)**: Learning pathways, badges, and interactive sections.
-- **Sunshine Yellow (`#FFD84D`)**: Accents and level badges.
-- **Fresh Green (`#B8E986`)**: Completion status and success metrics.
-- **Ink Black (`#202020`)**: High-contrast, readable typography.
+**Who it is for:** students and junior developers who open an unfamiliar repository and don't know where to start.
 
----
+> Visual style is Hacktoberfest-*inspired* (cream, orange, purple, yellow, green, Mochi-sensei). Repo Tutor is **not** affiliated with or endorsed by Hacktoberfest.
 
-## 🧭 Implemented Routes
+## What is real, and what is not
 
-| Route | Description |
-|---|---|
-| `/` | **Landing Page** with URL submission hero, inline validation, language/level selection, trust labels, featured courses, how-it-works steps, and feature breakdown. |
-| `/explore` | **Explore Repositories** with real-time search, category filtering (Frontend, Backend, Full Stack), course badges, and empty states. |
-| `/repo/[owner]/[name]` | **Repository Learning Dashboard** with course overview, syllabus timeline, progress indicators, objectives, and GitHub link. |
-| `/repo/[owner]/[name]/lesson/[lessonId]` | **Interactive Lesson & Quiz** with sidebar navigation, breadcrumbs, English/Hinglish language switcher, syntax-highlighted code breakdowns, hands-on exercises, multiple-choice quiz with scoring/explanations/retry, and local progress persistence. |
-| `/repo/[owner]/[name]/code` | **Code Explorer** featuring an expandable file tree with filename filtering, line-numbered syntax code viewer, file purpose summary, important functions breakdown, and clickable related file links. |
-| `/progress` | **Learning Progress** tracking total lessons completed, quizzes taken, active repositories with visual progress bars, recent quiz score breakdowns, and state reset/load actions. |
+| Feature | How it works | Uses an AI model? |
+|---|---|---|
+| Repository ingestion | GitHub REST API + raw file downloads, pinned to a commit SHA, with size/file limits and secret/binary/dependency exclusion. Repository code is **never executed**. | No |
+| Analysis (languages, dependencies, entry points, imports, reading order) | Pattern matching over the files that were read. Each claim carries a file + line range. | No |
+| Lessons and quizzes | Templates filled with the analysis facts. Code excerpts are verbatim with real line numbers; quiz answers are facts from the files. | No |
+| English / Hinglish | Fixed template text in both languages; identifiers and file names stay unchanged. | No |
+| Code Explorer | Shows the stored, secret-redacted files and facts from the analysis. | No |
+| Progress, quiz scoring | Stored in SQLite; scoring happens on the server. | No |
+| **Ask the tutor (experimental)** | Local model via Ollama, answers checked against the real source and labelled. | **Yes** |
+| Sample courses (`/explore`) | Bundled demo content, labelled "Demo". Not a live analysis. | No |
 
----
+**Model limitations:** the two 1B models tested were not reliable enough to teach code on their own (see [docs/AI_MODEL_EVALUATION.md](docs/AI_MODEL_EVALUATION.md)). That is why the course does not depend on a model, and why every tutor answer is verified and labelled. A verified citation proves the quoted code is on the cited lines, **not** that the explanation is right.
 
-## ⚙️ How to Install & Run
+## Quick start
 
-### Prerequisites
-- Node.js 18+ (tested on Node v22.17.1)
-- npm or yarn
+Requirements: **Node.js ≥ 22.13** (uses built-in `node:sqlite`, which Node still marks experimental), npm.
 
-### 1. Install Dependencies
 ```bash
 cd repo-tutor
 npm install --legacy-peer-deps
+cp .env.example .env.local        # optional: defaults work
+npm run dev                       # http://localhost:3000
 ```
 
-### 2. Run the Development Server
-```bash
-npm run dev
-```
-Open [http://localhost:3000](http://localhost:3000) in your browser.
+Paste a public GitHub URL on the home page. Analysis needs internet access to GitHub (60 API requests/hour without a token; each analysis uses 3). Lessons, quizzes, Code Explorer and progress work **without Ollama**.
 
-### 3. Run Production Build
+### Optional: the AI tutor (Ollama)
+
 ```bash
+# install Ollama from https://ollama.com/download, then:
+ollama pull gemma3:1b             # ~0.8 GB; default AI_MODEL
+curl http://localhost:3000/api/ai/health      # {"ok":true,...} when reachable and installed
+npm run ai:smoke                  # sends one real prompt to the configured model
+```
+
+On Windows you can keep models off `C:` with the `OLLAMA_MODELS` environment variable (set it **before** starting Ollama). Expect **30 – 90 s per answer on a CPU-only laptop**. If Ollama is not running, the tutor shows a clear error; nothing is faked.
+
+**Licences:** `gemma3:1b` is under the Gemma Terms of Use; `qwen2.5-coder:1.5b` is Apache-2.0. Details and sources in [docs/AI_MODEL_EVALUATION.md](docs/AI_MODEL_EVALUATION.md). Repo Tutor does not redistribute weights.
+
+## Architecture and data flow
+
+```
+URL ─▶ POST /api/analyze ─▶ job runner (in-process, max N concurrent, timeout)
+        validate (strict host)   GitHubClient ─▶ api.github.com + raw.githubusercontent.com
+                                 filter files (binary/deps/lockfiles/secret names), redact secret-looking values
+                                 analyzeRepository ─▶ buildCourse (lessons + quizzes)
+                                 SQLite: analyses, analysis_files, ...   (atomic; failure ≠ completed)
+Browser polls GET /api/analyze/:id ─▶ /repo/:owner/:name (server components read SQLite)
+Lesson quiz ─▶ POST /api/progress/quiz  (server scores)  ─▶ POST /api/progress/complete (needs a pass)
+Ask ─▶ POST /api/ask ─▶ select bounded context ─▶ Ollama (JSON schema) ─▶ citation verifier ─▶ labelled answer
+```
+
+Key modules: `lib/github` (URL, filters, client), `lib/analysis` (symbols, analyze, course), `lib/grounding` (citation verifier), `lib/ai` (replaceable provider + validated output), `lib/tutor`, `lib/db` (migrations + store), `lib/jobs`, `lib/server` (cookies, rate limits, HTTP helpers), `app/api/*`.
+
+## Database
+
+SQLite file at `DATABASE_PATH` (default `data/repo-tutor.sqlite`, git-ignored). Migrations are in `lib/db/migrations.ts`, are append-only, run automatically on first connection and are recorded in `schema_migrations`. Tables: `repos`, `analyses` (with commit SHA and status), `analysis_files`, `learners`, `lesson_progress`, `quiz_attempts`, `repo_visits`. Analysed repositories are cached for `ANALYSIS_TTL_HOURS` (24); a newer commit is picked up on the next analysis after that.
+
+**Hosting caveat:** SQLite needs a persistent disk. On hosts with an ephemeral filesystem (including the default for many free tiers) data is lost on redeploy. Use a mounted volume or switch the store.
+
+## Environment variables
+
+See [.env.example](.env.example); every variable has a default. `GITHUB_TOKEN`, if set, is only sent to `api.github.com`. No secret is exposed to the browser.
+
+## Tests and checks
+
+```bash
+npx tsc --noEmit      # types
+npm run lint
+npm test              # vitest: unit + integration, all with fake GitHub / scripted model
 npm run build
-npm run start
+npm run ai:smoke      # REAL model (needs Ollama), not part of npm test
 ```
 
----
+`npm test` never talks to GitHub or a model. Scripted/faked providers appear **only** in tests. Real-network and real-model checks are the scripts in `scripts/` and the manual journey in [IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md).
 
-## 📁 Architecture & Service Layer
+## Security notes
 
-All repository data, lessons, file trees, and progress management are strictly separated from UI components behind typed service contracts.
+* Strict URL parsing: only `https://github.com/<owner>/<repo>`; requests go only to two fixed hosts (no SSRF); redirects are refused.
+* Repository text is untrusted: never executed, never put in the system prompt, wrapper tags are neutralised, context is bounded.
+* Excluded: `node_modules`/build output, binaries, lockfiles, minified bundles, likely secret files (`.env*`, keys, tfvars…); secret-looking values in other files are redacted.
+* Request bodies are size-capped and schema-validated; same-origin check on all mutations; in-memory rate limits (per process).
+* Quiz answers are never sent to the browser before submission; scoring and completion rules are server-side.
 
-- **Types**: `lib/types/index.ts`
-- **Demo Data**: `lib/demo/data.ts`
-- **Service Layer**: `lib/services/index.ts`
-- **Components**:
-  - `components/layout/` (Navbar, Footer)
-  - `components/ui/` (Icons, Badge, ProgressBar, HeroForm)
-  - `components/repository/` (RepoCard)
-  - `components/course/` (LessonViewer)
-  - `components/code-explorer/` (CodeBlock, CodeExplorer)
-  - `components/quiz/` (QuizPanel)
-  - `components/progress/` (ProgressView)
+## Known limitations
 
----
+* **No accounts.** Progress belongs to an anonymous HttpOnly cookie; clearing cookies loses it, and anyone holding the cookie can see it. Not suitable for multi-user guarantees.
+* Only **one skill level** (beginner) exists; the old level selector was removed because it did nothing.
+* Analysis reads at most ~40 key files / 600 KB per repository; symbol and import detection is regex-based (JS/TS, Python, Go, Rust, Java-like); other languages get file-level facts only. Monorepos are shallowly covered.
+* Quiz questions are factual ("which file…", "which line…"), not conceptual.
+* No semantic (embedding) search; the Code Explorer filters by file name only.
+* Unknown lesson URLs render a not-found page with HTTP 200 (streaming), marked `noindex`.
+* Rate limits and the AI concurrency guard are per process.
+* `node:sqlite` is experimental in Node 22.
+* No payments, authentication, admin dashboard or analytics yet.
+* The UI journey was verified over HTTP and with component-level checks, **not** with an automated browser test suite.
 
-## 🔌 How a Future Backend Replaces Demo Services
+## Routes
 
-The frontend service interface (`lib/services/index.ts`) is designed so that a real backend (e.g., built with Python, FastAPI, Node.js, Codex, Gemma, Mastra, or MongoDB) can replace demo functions without altering component props or route contracts:
-
-1. **`parseGitHubUrl(url)`**: Validate and sanitize GitHub repository URLs.
-2. **`getDemoRepository(owner, name)`** ➔ Replace with `fetchRepositoryMetadata(owner, name)` calling GitHub API or your backend repository cache.
-3. **`getCourse(owner, name)`** ➔ Replace with `GET /api/repos/:owner/:name/course` which generates or returns the structured curriculum.
-4. **`getLesson(lessonId)`** ➔ Replace with `GET /api/lessons/:lessonId` returning AI-generated explanations, code breakdowns, and exercises.
-5. **`getQuiz(lessonId)`** ➔ Replace with `GET /api/lessons/:lessonId/quiz` retrieving dynamically generated assessment questions.
-6. **`getFileTree(owner, name)`** ➔ Replace with `GET /api/repos/:owner/:name/tree` querying GitHub Git Trees API.
-7. **`getCodeFile(path)` & `getFileExplanation(path)`** ➔ Replace with `GET /api/repos/:owner/:name/files?path=...` returning file contents and AI tutor annotations.
-8. **`getGlobalProgress()` / `saveGlobalProgress()`** ➔ Replace `localStorage` with authenticated user profile endpoints (`GET /api/user/progress` and `POST /api/user/progress`).
-
----
-
-## ⚠️ Demo Mode Limitations
-- Repo Tutor currently operates in **demo mode** with curated local sample repositories (`facebook/react`, `vercel/next.js`, `expressjs/express`, `vuejs/vue`, `fastapi/fastapi`, `remix-run/remix`).
-- No live network requests to GitHub API or external LLM models are made.
-- Learning progress is persisted in the browser via `localStorage`.
+`/` landing · `/explore` samples + analysed repos · `/repo/[owner]/[name]` dashboard · `…/lesson/[lessonId]` · `…/code` · `/progress` · API: `/api/analyze`, `/api/analyze/[id]`, `/api/ask`, `/api/progress[/quiz|/complete|/visit]`, `/api/repo/[owner]/[name]/file`, `/api/ai/health`.

@@ -45,6 +45,8 @@ export interface CodeSnippet {
   path: string;
   language: string;
   content: string;
+  /** 1-based line number of the first line of `content` in the original file (excerpts). */
+  startLine?: number;
   highlightedLines?: number[];
 }
 
@@ -126,6 +128,25 @@ export interface QuizResult {
   score: number;
   total: number;
   completedAt: string;
+}
+
+/** A quiz as sent to the browser: no correct answers, no explanations (those come back with the graded result). */
+export interface PublicQuizQuestion {
+  id: string;
+  question: string;
+  options: QuizOption[];
+}
+export interface PublicQuiz {
+  lessonId: string;
+  questions: PublicQuizQuestion[];
+}
+export interface QuizAttemptResult {
+  lessonId: string;
+  score: number;
+  total: number;
+  percent: number;
+  passed: boolean;
+  results: { questionId: string; selectedOptionId: string | null; correctOptionId: string; correct: boolean; explanation: string }[];
 }
 
 // ─── Course ──────────────────────────────────────────────────

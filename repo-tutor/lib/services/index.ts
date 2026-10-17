@@ -211,40 +211,26 @@ export function getFileTree(owner: string, name: string): TreeNode[] {
   return DEMO_TREES[id] ?? [];
 }
 
-/** Get explanation for a file path */
+/** Get explanation for a file path. Demo mode only has hand-written entries; nothing is invented for other files. */
 export function getFileExplanation(filePath: string): FileExplanation {
   if (DEMO_FILE_EXPLANATIONS[filePath]) return DEMO_FILE_EXPLANATIONS[filePath];
-  const parts = filePath.split("/");
-  const fileName = parts[parts.length - 1];
   return {
     path: filePath,
-    summary: `Source file "${fileName}" in this repository. It provides key implementation logic and module exports used across the architecture.`,
-    importantFunctions: [
-      {
-        name: fileName.replace(/\.[^/.]+$/, ""),
-        description: `Primary export or handler associated with ${fileName}.`,
-      },
-      {
-        name: "initialize",
-        description: "Initializes the module runtime settings and dependencies.",
-      },
-    ],
-    relatedFiles: parts.length > 1 ? [parts.slice(0, -1).join("/") + "/index.js"] : [],
+    summary: "Demo mode has no bundled explanation for this file. Analyse the live repository to get explanations generated from its real files.",
+    importantFunctions: [],
+    relatedFiles: [],
   };
 }
 
-/** Get the code snippet for a file path */
+/** Get the code snippet for a file path. Demo mode only has hand-written samples; no placeholder code is fabricated. */
 export function getCodeFile(filePath: string): CodeSnippet {
   if (DEMO_CODE_FILES[filePath]) return DEMO_CODE_FILES[filePath];
   const parts = filePath.split("/");
-  const fileName = parts[parts.length - 1];
-  const ext = fileName.split(".").pop() || "js";
-  const lang = ext === "ts" || ext === "tsx" ? "typescript" : ext === "json" ? "json" : "javascript";
   return {
-    filename: fileName,
+    filename: parts[parts.length - 1],
     path: filePath,
-    language: lang,
-    content: `/**\n * Repo Tutor — Code Explorer\n * Path: ${filePath}\n */\n\n// Module configuration and public exports\nexport const VERSION = "1.0.0";\n\nexport function initialize(options = {}) {\n  console.log("Initializing ${fileName} with options:", options);\n  return {\n    status: "active",\n    timestamp: Date.now(),\n  };\n}\n\nexport default initialize;`,
+    language: "text",
+    content: "// Demo mode: no sample content is bundled for this file.\n// Analyse the live repository to read its real source.",
   };
 }
 

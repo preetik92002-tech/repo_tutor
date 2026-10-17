@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
 import type { Repository, TreeNode, FileExplanation, CodeSnippet } from "@/lib/types";
 import { getFileExplanation, getCodeFile } from "@/lib/services";
+import { api } from "@/lib/client/api";
 import CodeBlock from "./CodeBlock";
 import {
   FolderIcon,
@@ -21,11 +22,17 @@ import {
 interface CodeExplorerProps {
   repo: Repository;
   tree: TreeNode[];
+  /**
+   * Live mode: files come from a real analysis (fetched on demand from the server) and the
+   * explanation panel is generated from the analysis. Absent = bundled demo content.
+   */
+  live?: { explanations: Record<string, FileExplanation>; initialPath?: string };
 }
 
-export default function CodeExplorer({ repo, tree }: CodeExplorerProps) {
+export default function CodeExplorer({ repo, tree, live }: CodeExplorerProps) {
   // Find first file in tree for initial selection
   const firstFilePath = useMemo(() => {
+    if (live?.initialPath) return live.initialPath;
     function findFirstFile(nodes: TreeNode[]): string {
       for (const node of nodes) {
         if (node.type === "file") return node.path;
@@ -37,11 +44,14 @@ export default function CodeExplorer({ repo, tree }: CodeExplorerProps) {
       return "";
     }
     return findFirstFile(tree);
-  }, [tree]);
+  }, [tree, live?.initialPath]);
 
   const [selectedPath, setSelectedPath] = useState<string>(firstFilePath);
   const [searchQuery, setSearchQuery] = useState("");
-  const [openFolders, setOpenFolders] = useState<Record<string, boolean>>({
+  const [openFolders, setOpenFolders] = useState<Record<string, boolean>>(
+    live
+      ? Object.fromEntries(tree.filter((n) => n.type === "directory").map((n) => [n.path, true]))
+      : {
     packages: true,
     "packages/react": true,
     "packages/react/src": true,
@@ -49,17 +59,52 @@ export default function CodeExplorer({ repo, tree }: CodeExplorerProps) {
     "lib/router": true,
     "packages/next": true,
     "packages/next/src": true,
-  });
+    }
+  );
   const [mobileTab, setMobileTab] = useState<"files" | "code" | "explanation">("code");
+
+  const [highlight, setHighlight] = useState<number[]>([]);
+  const [fetched, setFetched] = useState<{ path: string; snippet?: CodeSnippet; error?: string } | null>(null);
+
+  // Live mode: load the real (stored, secret-redacted) file from the server.
+  useEffect(() => {
+    if (!live || !selectedPath) return;
+    let cancelled = false;
+    api<{ path: string; language: string | null; content: string }>(
+      `/api/repo/${repo.owner}/${repo.name}/file?path=${encodeURIComponent(selectedPath)}`
+    )
+      .then((f) => {
+        if (cancelled) return;
+        const lang = f.language ? f.language.toLowerCase() : "text";
+        setFetched({
+          path: selectedPath,
+          snippet: { filename: selectedPath.split("/").pop() ?? selectedPath, path: selectedPath, language: lang === "json" || lang === "typescript" || lang === "javascript" || lang === "python" ? lang : "text", content: f.content },
+        });
+      })
+      .catch((e: Error) => {
+        if (!cancelled) setFetched({ path: selectedPath, error: e.message });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [live, repo.owner, repo.name, selectedPath]);
+
+  const loadingLive = !!live && fetched?.path !== selectedPath;
+  const liveError = live && fetched?.path === selectedPath ? fetched.error : undefined;
 
   // Get current file code & explanation
   const currentSnippet: CodeSnippet = useMemo(() => {
+    if (live) {
+      if (fetched?.path === selectedPath && fetched.snippet) return { ...fetched.snippet, highlightedLines: highlight };
+      return { filename: selectedPath.split("/").pop() ?? "", path: selectedPath, language: "text", content: loadingLive ? "Loading…" : liveError ?? "" };
+    }
     return getCodeFile(selectedPath);
-  }, [selectedPath]);
+  }, [live, fetched, selectedPath, highlight, loadingLive, liveError]);
 
   const currentExplanation: FileExplanation = useMemo(() => {
+    if (live) return live.explanations[selectedPath] ?? { path: selectedPath, summary: "This file was not part of the analysis.", importantFunctions: [], relatedFiles: [] };
     return getFileExplanation(selectedPath);
-  }, [selectedPath]);
+  }, [live, selectedPath]);
 
   function toggleFolder(folderPath: string) {
     setOpenFolders((prev) => ({
@@ -69,6 +114,7 @@ export default function CodeExplorer({ repo, tree }: CodeExplorerProps) {
   }
 
   function handleSelectFile(path: string) {
+    setHighlight([]);
     setSelectedPath(path);
     setMobileTab("code");
   }
@@ -197,7 +243,7 @@ export default function CodeExplorer({ repo, tree }: CodeExplorerProps) {
               Repository Files
             </h2>
             <span className="text-[11px] font-bold px-2 py-0.5 rounded-full" style={{ background: "var(--cream)", color: "var(--purple)" }}>
-              Demo Tree
+              {live ? "Analysed files" : "Demo Tree"}
             </span>
           </div>
 
@@ -304,8 +350,12 @@ export default function CodeExplorer({ repo, tree }: CodeExplorerProps) {
                 {currentExplanation.importantFunctions.map((fn, idx) => (
                   <div
                     key={idx}
-                    className="p-2.5 rounded-xl border text-xs"
+                    className={`p-2.5 rounded-xl border text-xs ${live && fn.lineStart ? "cursor-pointer hover:bg-black/5" : ""}`}
                     style={{ background: "var(--cream)", borderColor: "var(--border)" }}
+                    role={live && fn.lineStart ? "button" : undefined}
+                    tabIndex={live && fn.lineStart ? 0 : undefined}
+                    onClick={live && fn.lineStart ? () => setHighlight([fn.lineStart!]) : undefined}
+                    onKeyDown={live && fn.lineStart ? (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setHighlight([fn.lineStart!]); } } : undefined}
                   >
                     <div className="font-mono font-bold text-xs" style={{ color: "var(--purple)" }}>
                       {fn.name}

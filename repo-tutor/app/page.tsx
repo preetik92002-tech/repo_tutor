@@ -3,6 +3,7 @@ import RepoCard from "@/components/repository/RepoCard";
 import { DEMO_REPOSITORIES } from "@/lib/demo/data";
 import { StarIcon } from "@/components/ui/Icons";
 import Image from "next/image";
+import Link from "next/link";
 
 // Featured repos: exactly first 3
 const FEATURED = DEMO_REPOSITORIES.slice(0, 3);
@@ -405,9 +406,9 @@ export default function HomePage() {
             Your Next Favorite Open-Source Project Is Waiting.
           </h2>
           <div className="mt-7">
-            <a className="btn btn-primary btn-lg" href="/#start">
+            <Link className="btn btn-primary btn-lg" href="/#start">
               Start Learning
-            </a>
+            </Link>
           </div>
         </div>
       </section>

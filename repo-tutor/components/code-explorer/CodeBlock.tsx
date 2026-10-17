@@ -9,11 +9,12 @@ interface CodeBlockProps {
 function highlightCode(
   code: string,
   language: string,
-  highlightedLines: number[] = []
+  highlightedLines: number[] = [],
+  startLine = 1
 ): React.ReactNode[] {
   const lines = code.split("\n");
   return lines.map((line, i) => {
-    const lineNum = i + 1;
+    const lineNum = i + startLine; // real file line number when the snippet is an excerpt
     const isHighlighted = highlightedLines.includes(lineNum);
     const highlighted = highlightLine(line, language);
 
@@ -50,7 +51,7 @@ function highlightLine(line: string, lang: string): string {
 
   // Strings
   result = result.replace(
-    /(&quot;[^&]*?&quot;|&#039;[^&]*?&#039;|`[^`]*`)/g,
+    /(&quot;[^&]*?&quot;|&apos;[^&]*?&apos;|`[^`]*`)/g,
     '<span class="tok-string">$1</span>'
   );
 
@@ -77,7 +78,7 @@ function escapeHtml(str: string): string {
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
+    .replace(/'/g, "&apos;");
 }
 
 export default function CodeBlock({
@@ -114,7 +115,7 @@ export default function CodeBlock({
         >
           <code>
             {showLineNumbers
-              ? highlightCode(snippet.content, snippet.language, highlightedLines)
+              ? highlightCode(snippet.content, snippet.language, highlightedLines, snippet.startLine ?? 1)
               : snippet.content.split("\n").map((line, i) => (
                   <div key={i} className="px-4">
                     {line || " "}

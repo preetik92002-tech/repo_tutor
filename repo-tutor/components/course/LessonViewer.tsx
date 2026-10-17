@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import type { Course, Lesson, Quiz, LanguagePreference } from "@/lib/types";
+import type { Course, Lesson, Quiz, PublicQuiz, QuizAttemptResult, LanguagePreference } from "@/lib/types";
+import { api } from "@/lib/client/api";
 import {
   markLessonComplete,
   saveLessonQuizResult,
@@ -27,9 +28,16 @@ import {
 interface LessonViewerProps {
   course: Course;
   lesson: Lesson;
-  quiz: Quiz | null;
+  quiz: Quiz | PublicQuiz | null;
   owner: string;
   name: string;
+  /**
+   * "demo": bundled sample content, progress kept in this browser only.
+   * "live": generated from a real analysis; quizzes are graded and progress is stored on the server.
+   */
+  mode?: "demo" | "live";
+  /** Live mode: ids of lessons this learner has completed (from the server). */
+  completedIds?: string[];
 }
 
 export default function LessonViewer({
@@ -38,21 +46,79 @@ export default function LessonViewer({
   quiz,
   owner,
   name,
+  mode = "demo",
+  completedIds = [],
 }: LessonViewerProps) {
+  const live = mode === "live";
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [doneIds, setDoneIds] = useState<Set<string>>(() => new Set(completedIds));
   const [isCompleted, setIsCompleted] = useState(() => {
+    if (live) return completedIds.includes(lesson.id);
     if (typeof window === "undefined") return lesson.status === "completed";
     return getLessonStatus(owner, name, lesson.id, lesson.status) === "completed";
   });
-  const [lang, setLang] = useState<LanguagePreference>("english");
+  const [lang, setLangState] = useState<LanguagePreference>("english");
+  const [actionError, setActionError] = useState("");
+
+  // Language choice is remembered across lessons (browser-only preference).
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("rt_lang");
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- reading a browser-only preference after hydration
+      if (saved === "english" || saved === "hinglish") setLangState(saved);
+    } catch {
+      /* storage unavailable */
+    }
+  }, []);
+  function setLang(l: LanguagePreference) {
+    setLangState(l);
+    try {
+      localStorage.setItem("rt_lang", l);
+    } catch {
+      /* ignore */
+    }
+  }
+
+  // Live mode: remember the last visited lesson (this never marks it complete).
+  useEffect(() => {
+    if (!live) return;
+    api("/api/progress/visit", { body: { owner, name, lessonId: lesson.id } }).catch(() => {});
+  }, [live, owner, name, lesson.id]);
+
+  const statusOf = (id: string, fallback: Lesson["status"]) =>
+    live ? (doneIds.has(id) ? "completed" : fallback) : getLessonStatus(owner, name, id, fallback);
+
+  async function completeLive(): Promise<boolean> {
+    setActionError("");
+    try {
+      await api("/api/progress/complete", { body: { owner, name, lessonId: lesson.id } });
+      setIsCompleted(true);
+      setDoneIds((p) => new Set(p).add(lesson.id));
+      return true;
+    } catch (e) {
+      setActionError(e instanceof Error ? e.message : "Could not save your progress.");
+      return false;
+    }
+  }
 
   // Handle Mark as Complete toggle
   function handleToggleComplete() {
+    if (live) {
+      void completeLive();
+      return;
+    }
     markLessonComplete(owner, name, lesson.id, course.description);
     setIsCompleted(true);
   }
 
   // Handle Quiz completion
+  async function submitLiveQuiz(answers: { questionId: string; selectedOptionId: string }[]) {
+    return api<QuizAttemptResult>("/api/progress/quiz", { body: { owner, name, lessonId: lesson.id, answers } });
+  }
+  function handleGraded(r: QuizAttemptResult) {
+    // The server already scored and stored the attempt; passing it earns completion (also enforced server-side).
+    if (r.passed) void completeLive();
+  }
   function handleQuizComplete(score: number, total: number) {
     saveLessonQuizResult(lesson.id, score, total);
     // Passing quiz automatically completes lesson
@@ -163,7 +229,7 @@ export default function LessonViewer({
           <div className="space-y-1.5 overflow-y-auto max-h-[calc(100vh-220px)] pr-1">
             {course.learningPath.map((item) => {
               const isCurrent = item.id === lesson.id;
-              const status = getLessonStatus(owner, name, item.id, item.status);
+              const status = statusOf(item.id, item.status);
               const Icon =
                 status === "completed"
                   ? CheckCircleIcon
@@ -249,7 +315,7 @@ export default function LessonViewer({
               <div className="flex-1 overflow-y-auto space-y-2">
                 {course.learningPath.map((item) => {
                   const isCurrent = item.id === lesson.id;
-                  const status = getLessonStatus(owner, name, item.id, item.status);
+                  const status = statusOf(item.id, item.status);
                   return (
                     <Link
                       key={item.id}
@@ -315,6 +381,22 @@ export default function LessonViewer({
               {lesson.objective}
             </p>
 
+            <p className="mt-3 text-xs font-semibold" style={{ color: "var(--ink-muted)" }}>
+              {live
+                ? "Built from the files Repo Tutor read in this repository, using fixed rules (no AI model wrote this lesson). Line numbers refer to the real files."
+                : "Sample lesson: bundled demo content, not generated from the live repository."}
+            </p>
+
+            {actionError && (
+              <p
+                role="alert"
+                className="mt-4 rounded-xl border-2 px-3 py-2 text-sm font-semibold"
+                style={{ background: "#FEF2F2", borderColor: "#FCA5A5", color: "#991B1B" }}
+              >
+                {actionError}
+              </p>
+            )}
+
             <div className="mt-6 pt-6 border-t flex flex-wrap items-center justify-between gap-4" style={{ borderColor: "var(--border)" }}>
               <div className="text-xs font-medium" style={{ color: "var(--ink-muted)" }}>
                 Repository: <strong style={{ color: "var(--ink)" }}>{course.title}</strong>
@@ -360,7 +442,7 @@ export default function LessonViewer({
                         <BookOpenIcon size={16} />
                         <span>Core Concept & Explanation</span>
                       </div>
-                      <p className="text-base sm:text-lg leading-relaxed" style={{ color: "var(--ink)" }}>
+                      <p className="text-base sm:text-lg leading-relaxed whitespace-pre-line" style={{ color: "var(--ink)" }}>
                         {lang === "hinglish" && section.hinglishContent
                           ? section.hinglishContent
                           : section.content}
@@ -376,7 +458,7 @@ export default function LessonViewer({
                       style={{ borderColor: "var(--border)" }}
                     >
                       <h3 className="font-bold text-lg mb-4" style={{ color: "var(--ink)" }}>
-                        {section.content}
+                        {(lang === "hinglish" && section.hinglishContent) || section.content}
                       </h3>
                       <ul className="space-y-2.5">
                         {((lang === "hinglish" && section.hinglishItems) || section.items || []).map(
@@ -411,7 +493,7 @@ export default function LessonViewer({
                           Code In Action
                         </h3>
                         <p className="text-sm" style={{ color: "var(--ink-muted)" }}>
-                          {section.content}
+                          {(lang === "hinglish" && section.hinglishContent) || section.content}
                         </p>
                       </div>
                       {section.codeSnippet && <CodeBlock snippet={section.codeSnippet} />}
@@ -426,10 +508,10 @@ export default function LessonViewer({
                       style={{ borderColor: "var(--border)" }}
                     >
                       <h3 className="font-bold text-lg mb-4" style={{ color: "var(--ink)" }}>
-                        {section.content}
+                        {(lang === "hinglish" && section.hinglishContent) || section.content}
                       </h3>
                       <div className="space-y-3">
-                        {(section.items || []).map((item, i) => (
+                        {((lang === "hinglish" && section.hinglishItems) || section.items || []).map((item, i) => (
                           <div
                             key={i}
                             className="p-3.5 rounded-xl border flex items-start gap-3 text-sm leading-relaxed"
@@ -457,10 +539,10 @@ export default function LessonViewer({
                     >
                       <div className="flex items-center gap-2 mb-4 font-bold text-lg" style={{ color: "var(--purple)" }}>
                         <ZapIcon size={20} />
-                        <h3>{section.content}</h3>
+                        <h3>{(lang === "hinglish" && section.hinglishContent) || section.content}</h3>
                       </div>
                       <ul className="space-y-2.5">
-                        {(section.items || []).map((item, i) => (
+                        {((lang === "hinglish" && section.hinglishItems) || section.items || []).map((item, i) => (
                           <li
                             key={i}
                             className="flex items-start gap-2.5 text-sm sm:text-base leading-relaxed"
@@ -485,7 +567,7 @@ export default function LessonViewer({
                         <span>⚡ Hands-on Exercise</span>
                       </div>
                       <p className="text-sm sm:text-base leading-relaxed font-medium" style={{ color: "#78350F" }}>
-                        {section.content}
+                        {(lang === "hinglish" && section.hinglishContent) || section.content}
                       </p>
                     </section>
                   );
@@ -499,7 +581,11 @@ export default function LessonViewer({
           {/* Quiz Section */}
           {quiz && (
             <section className="pt-4">
-              <QuizPanel quiz={quiz} onComplete={handleQuizComplete} />
+              {live ? (
+                <QuizPanel quiz={quiz} submit={submitLiveQuiz} onGraded={handleGraded} />
+              ) : (
+                <QuizPanel quiz={quiz} onComplete={handleQuizComplete} />
+              )}
             </section>
           )}
 

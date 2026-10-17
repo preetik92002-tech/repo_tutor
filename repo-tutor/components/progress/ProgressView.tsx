@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { getGlobalProgress, saveGlobalProgress } from "@/lib/services";
 import type { GlobalProgress } from "@/lib/types";
+import { api } from "@/lib/client/api";
 import { ProgressBar } from "@/components/ui/ProgressBar";
 import { Badge } from "@/components/ui/Badge";
 import {
@@ -16,146 +17,66 @@ import {
 } from "@/components/ui/Icons";
 
 export default function ProgressView() {
-  const [progress, setProgress] = useState<GlobalProgress>(() => {
-    if (typeof window === "undefined") {
-      return { repos: [], totalLessonsCompleted: 0, totalQuizzesTaken: 0 };
-    }
-    const current = getGlobalProgress();
-    if (current.repos.length === 0) {
-      const demoInit: GlobalProgress = {
-        totalLessonsCompleted: 3,
-        totalQuizzesTaken: 2,
-        repos: [
-          {
-            repoId: "facebook-react",
-            repoFullName: "facebook/react",
-            repoDescription:
-              "The library for web and native user interfaces. Build UI from pieces called components.",
-            completedLessons: 2,
-            totalLessons: 6,
-            percentComplete: 33,
-            lastAccessedAt: new Date(Date.now() - 3600000 * 4).toISOString(),
-            lessonProgress: [
-              {
-                lessonId: "react-l1",
-                status: "completed",
-                completedAt: new Date(Date.now() - 3600000 * 5).toISOString(),
-                quizResult: {
-                  lessonId: "react-l1",
-                  answers: [],
-                  score: 3,
-                  total: 3,
-                  completedAt: new Date(Date.now() - 3600000 * 5).toISOString(),
-                },
-              },
-              {
-                lessonId: "react-l2",
-                status: "completed",
-                completedAt: new Date(Date.now() - 3600000 * 4).toISOString(),
-                quizResult: {
-                  lessonId: "react-l2",
-                  answers: [],
-                  score: 2,
-                  total: 3,
-                  completedAt: new Date(Date.now() - 3600000 * 4).toISOString(),
-                },
-              },
-              {
-                lessonId: "react-l3",
-                status: "in_progress",
-              },
-            ],
-          },
-          {
-            repoId: "expressjs-express",
-            repoFullName: "expressjs/express",
-            repoDescription: "Fast, unopinionated, minimalist web framework for Node.js.",
-            completedLessons: 1,
-            totalLessons: 5,
-            percentComplete: 20,
-            lastAccessedAt: new Date(Date.now() - 3600000 * 24).toISOString(),
-            lessonProgress: [
-              {
-                lessonId: "express-l1",
-                status: "completed",
-                completedAt: new Date(Date.now() - 3600000 * 24).toISOString(),
-              },
-            ],
-          },
-        ],
-      };
-      saveGlobalProgress(demoInit);
-      return demoInit;
-    }
-    return current;
-  });
+  // Real progress lives on the server (keyed to an anonymous cookie). Sample-course progress from the
+  // bundled demo is kept in this browser only and is shown separately. Nothing is pre-filled.
+  const [server, setServer] = useState<GlobalProgress | null>(null);
+  const [local, setLocal] = useState<GlobalProgress>({ repos: [], totalLessonsCompleted: 0, totalQuizzesTaken: 0 });
+  const [error, setError] = useState("");
 
-  function handleResetProgress() {
-    const empty: GlobalProgress = {
-      repos: [],
-      totalLessonsCompleted: 0,
-      totalQuizzesTaken: 0,
-    };
-    saveGlobalProgress(empty);
-    setProgress(empty);
+  const load = useCallback(async () => {
+    setError("");
+    try {
+      setServer(await api<GlobalProgress>("/api/progress"));
+    } catch (e) {
+      setServer(null);
+      setError(e instanceof Error ? e.message : "Could not load your progress.");
+    }
+    setLocal(getGlobalProgress());
+  }, []);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- initial client-side load
+    void load();
+  }, [load]);
+
+  async function handleResetProgress() {
+    if (!window.confirm("Reset all saved progress? This cannot be undone.")) return;
+    try {
+      await api("/api/progress", { method: "DELETE" });
+      saveGlobalProgress({ repos: [], totalLessonsCompleted: 0, totalQuizzesTaken: 0 });
+      await load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not reset progress.");
+    }
   }
 
-  function handleRestoreDemoProgress() {
-    const sample: GlobalProgress = {
-      totalLessonsCompleted: 3,
-      totalQuizzesTaken: 2,
-      repos: [
-        {
-          repoId: "facebook-react",
-          repoFullName: "facebook/react",
-          repoDescription:
-            "The library for web and native user interfaces. Build UI from pieces called components.",
-          completedLessons: 2,
-          totalLessons: 6,
-          percentComplete: 33,
-          lastAccessedAt: new Date().toISOString(),
-          lessonProgress: [
-            {
-              lessonId: "react-l1",
-              status: "completed",
-              completedAt: new Date().toISOString(),
-              quizResult: {
-                lessonId: "react-l1",
-                answers: [],
-                score: 3,
-                total: 3,
-                completedAt: new Date().toISOString(),
-              },
-            },
-            {
-              lessonId: "react-l2",
-              status: "completed",
-              completedAt: new Date().toISOString(),
-              quizResult: {
-                lessonId: "react-l2",
-                answers: [],
-                score: 2,
-                total: 3,
-                completedAt: new Date().toISOString(),
-              },
-            },
-          ],
-        },
-      ],
-    };
-    saveGlobalProgress(sample);
-    setProgress(sample);
+  if (error && !server) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center gap-3 px-4 text-center" style={{ background: "var(--cream)" }}>
+        <p role="alert" className="text-sm font-semibold text-[#991b1b]">{error}</p>
+        <button onClick={() => void load()} className="btn btn-secondary">Try again</button>
+      </div>
+    );
   }
 
-  if (!progress) {
+  if (!server) {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ background: "var(--cream)" }}>
-        <p className="text-sm font-semibold" style={{ color: "var(--ink-muted)" }}>
+        <p className="text-sm font-semibold" role="status" style={{ color: "var(--ink-muted)" }}>
           Loading your learning stats...
         </p>
       </div>
     );
   }
+
+  const serverNames = new Set(server.repos.map((r) => r.repoFullName.toLowerCase()));
+  const sampleRepos = local.repos.filter((r) => !serverNames.has(r.repoFullName.toLowerCase()));
+  const sampleIds = new Set(sampleRepos.map((r) => r.repoId));
+  const progress: GlobalProgress = {
+    repos: [...server.repos, ...sampleRepos],
+    totalLessonsCompleted: server.totalLessonsCompleted + sampleRepos.reduce((n, r) => n + r.completedLessons, 0),
+    totalQuizzesTaken: server.totalQuizzesTaken + sampleRepos.flatMap((r) => r.lessonProgress).filter((l) => l.quizResult).length,
+  };
 
   const hasRepos = progress.repos.length > 0;
 
@@ -247,7 +168,7 @@ export default function ProgressView() {
 
         {/* ─── Repositories In Progress ───────────────────── */}
         {!hasRepos ? (
-          <EmptyProgress onRestoreSample={handleRestoreDemoProgress} />
+          <EmptyProgress />
         ) : (
           <div className="space-y-6">
             <h2 className="text-2xl font-black tracking-tight" style={{ color: "var(--ink)" }}>
@@ -271,6 +192,7 @@ export default function ProgressView() {
                         <Badge variant={repo.percentComplete === 100 ? "green" : "orange"}>
                           {repo.percentComplete === 100 ? "Completed" : "In Progress"}
                         </Badge>
+                        {sampleIds.has(repo.repoId) && <Badge variant="orange">Sample course · this browser only</Badge>}
                       </div>
 
                       <p className="text-sm line-clamp-2" style={{ color: "var(--ink-muted)" }}>
@@ -392,38 +314,38 @@ function StatCard({
   );
 }
 
-function EmptyProgress({ onRestoreSample }: { onRestoreSample: () => void }) {
+function EmptyProgress() {
   return (
     <div
       className="p-12 sm:p-16 rounded-3xl border-2 bg-white text-center space-y-5"
       style={{ borderColor: "var(--border)" }}
     >
-      <div className="text-5xl">🚀</div>
+      <div className="text-5xl" aria-hidden="true">🚀</div>
       <div className="space-y-2 max-w-md mx-auto">
         <h3 className="text-xl font-black" style={{ color: "var(--ink)" }}>
           No Active Courses Yet
         </h3>
         <p className="text-sm leading-relaxed" style={{ color: "var(--ink-muted)" }}>
-          You haven&apos;t started learning any repositories yet. Pick a repository from our curated collection to begin your guided open-source learning journey.
+          You haven&apos;t started learning any repositories yet. Paste a public GitHub repository on the home page to get a learning path built from its real files, or open one of the sample courses.
         </p>
       </div>
 
       <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
         <Link
-          href="/explore"
+          href="/#start"
           className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-bold text-white text-sm transition-opacity hover:opacity-90 shadow-sm"
           style={{ background: "var(--orange)" }}
         >
-          <span>Start Learning</span>
+          <span>Analyse a repository</span>
           <ArrowRightIcon size={16} />
         </Link>
-        <button
-          onClick={onRestoreSample}
-          className="w-full sm:w-auto px-5 py-3 rounded-xl font-semibold text-xs border hover:bg-black/5 transition-all"
+        <Link
+          href="/explore"
+          className="w-full sm:w-auto px-5 py-3 rounded-xl font-semibold text-xs border hover:bg-black/5 transition-all text-center"
           style={{ borderColor: "var(--border)", color: "var(--ink-muted)" }}
         >
-          Load Demo Progress
-        </button>
+          Browse sample courses
+        </Link>
       </div>
     </div>
   );

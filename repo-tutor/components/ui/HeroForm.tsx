@@ -3,8 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { AlertCircleIcon, ArrowRightIcon } from "@/components/ui/Icons";
-import { parseGitHubUrl, getDemoRepository } from "@/lib/services";
-import type { LanguagePreference, SkillLevel } from "@/lib/types";
+import { GitHubError, parseRepoUrl } from "@/lib/github/url";
+import type { LanguagePreference } from "@/lib/types";
 
 interface HeroFormProps {
   compact?: boolean;
@@ -14,7 +14,6 @@ export default function HeroForm({ compact = false }: HeroFormProps) {
   const router = useRouter();
   const [url, setUrl] = useState("");
   const [language, setLanguage] = useState<LanguagePreference>("english");
-  const [level, setLevel] = useState<SkillLevel>("beginner");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -27,22 +26,24 @@ export default function HeroForm({ compact = false }: HeroFormProps) {
       return;
     }
 
-    const parsed = parseGitHubUrl(url);
-    if (!parsed) {
-      setError("That doesn't look like a valid GitHub URL. Try: https://github.com/owner/repo");
+    let parsed;
+    try {
+      parsed = parseRepoUrl(url);
+    } catch (err) {
+      setError(err instanceof GitHubError ? err.message : "That doesn't look like a valid GitHub URL. Try: https://github.com/owner/repo");
       return;
     }
 
-    const demo = getDemoRepository(parsed.owner, parsed.name);
-    if (!demo) {
-      setError(
-        `"${parsed.owner}/${parsed.name}" isn't in our demo set yet. Try one of the featured repositories below.`
-      );
-      return;
+    // The chosen explanation language is remembered for the lessons (browser-only preference).
+    try {
+      localStorage.setItem("rt_lang", language);
+    } catch {
+      /* storage unavailable */
     }
 
     setLoading(true);
-    router.push(`/repo/${parsed.owner}/${parsed.name}`);
+    // The repository page starts a real analysis (reading files from GitHub) and shows progress.
+    router.push(`/repo/${parsed.owner}/${parsed.name}?start=1`);
   }
 
   return (
@@ -148,32 +149,12 @@ export default function HeroForm({ compact = false }: HeroFormProps) {
           </div>
         </fieldset>
 
-        <fieldset className="min-w-0">
-          <legend className="mb-1.5 text-xs font-extrabold uppercase tracking-wider text-muted">
-            Skill level
-          </legend>
-          <div className="flex flex-wrap gap-2">
-            {(["beginner", "intermediate", "advanced"] as SkillLevel[]).map((lvl) => (
-              <label
-                key={lvl}
-                className={`cursor-pointer rounded-lg border-2 border-ink px-3 py-1.5 text-sm font-bold capitalize transition has-[:focus-visible]:outline has-[:focus-visible]:outline-[3px] has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-purple ${
-                  level === lvl
-                    ? "bg-purple text-white shadow-pop-sm"
-                    : "bg-white text-ink hover:bg-sun"
-                }`}
-              >
-                <input
-                  type="radio"
-                  className="sr-only"
-                  name="hero-skill-level"
-                  checked={level === lvl}
-                  onChange={() => setLevel(lvl)}
-                />
-                {lvl}
-              </label>
-            ))}
-          </div>
-        </fieldset>
+        <div className="min-w-0">
+          <p className="mb-1.5 text-xs font-extrabold uppercase tracking-wider text-muted">Course style</p>
+          <p className="text-sm leading-snug text-muted">
+            Beginner-friendly reading path built from the repository&apos;s real files. Other skill levels aren&apos;t available yet.
+          </p>
+        </div>
       </div>
 
       {/* CTA Button */}
@@ -182,7 +163,7 @@ export default function HeroForm({ compact = false }: HeroFormProps) {
         disabled={loading}
         className="btn btn-primary btn-lg w-full sm:w-auto"
       >
-        {loading ? "Loading Course..." : "Teach Me This Repo"}
+        {loading ? "Opening…" : "Teach Me This Repo"}
         {!loading && <ArrowRightIcon size={18} />}
       </button>
     </form>

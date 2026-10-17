@@ -41,3 +41,8 @@ yarn-error.log*
 next-env.d.ts
 
 !.env.example
+
+# local SQLite database & benchmark output
+/data/
+docs/ai-bench-raw.json
+docs/ai-bench.err
