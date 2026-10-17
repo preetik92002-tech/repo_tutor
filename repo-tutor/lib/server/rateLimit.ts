@@ -20,8 +20,11 @@ export function hit(key: string, limit: number, windowMs: number, now = Date.now
   return b.count <= limit ? { ok: true, retryAfterSec: 0 } : { ok: false, retryAfterSec: Math.ceil((b.resetAt - now) / 1000) };
 }
 
+// RATE_LIMIT_SCALE multiplies every limit (default 1). Useful behind a shared proxy IP or in automated browser tests.
+const SCALE = Math.max(1, Number(process.env.RATE_LIMIT_SCALE ?? 1) || 1);
+
 export function enforce(key: string, limit: number, windowMs: number, what: string) {
-  const r = hit(key, limit, windowMs);
+  const r = hit(key, limit * SCALE, windowMs);
   if (!r.ok) {
     throw new ApiError(429, "RATE_LIMITED", `Too many ${what}. Please wait about ${Math.ceil(r.retryAfterSec / 60)} minute(s) and try again.`, { retryAfterSec: r.retryAfterSec });
   }
