@@ -206,11 +206,11 @@ export default function CodeExplorer({ repo, tree, live }: CodeExplorerProps) {
         <button
           onClick={() => setMobileTab("code")}
           className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all ${
-            mobileTab === "code" ? "text-white" : ""
+            ""
           }`}
           style={{
             background: mobileTab === "code" ? "var(--orange)" : "var(--cream)",
-            color: mobileTab === "code" ? "#fff" : "var(--ink-muted)",
+            color: mobileTab === "code" ? "var(--ink)" : "var(--ink-muted)",
           }}
         >
           Code
@@ -229,8 +229,9 @@ export default function CodeExplorer({ repo, tree, live }: CodeExplorerProps) {
         </button>
       </div>
 
+      <h1 className="sr-only">Code Explorer</h1>
       {/* ─── Main 3-Column Interface ───────────────────── */}
-      <div className="flex-1 max-w-[1400px] mx-auto w-full px-4 sm:px-6 py-6 grid lg:grid-cols-12 gap-6 items-start">
+      <div className="flex-1 max-w-[1400px] mx-auto w-full px-4 sm:px-6 py-6 grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         {/* ─── Column 1: File Tree (3 cols) ──────────────── */}
         <div
           className={`${
@@ -327,7 +328,7 @@ export default function CodeExplorer({ repo, tree, live }: CodeExplorerProps) {
             className="p-5 rounded-2xl border-2 bg-white space-y-3"
             style={{ borderColor: "var(--border)" }}
           >
-            <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider" style={{ color: "var(--orange)" }}>
+            <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider" style={{ color: "var(--orange-text)" }}>
               <BookOpenIcon size={14} />
               <span>What this file does</span>
             </div>
@@ -434,9 +435,9 @@ function TreeNodeItem({
             <ChevronRightIcon size={12} className="shrink-0 opacity-60" />
           )}
           {isOpen ? (
-            <FolderOpenIcon size={14} className="shrink-0" style={{ color: "var(--orange)" } as React.CSSProperties} />
+            <FolderOpenIcon size={14} className="shrink-0" style={{ color: "var(--orange-text)" } as React.CSSProperties} />
           ) : (
-            <FolderIcon size={14} className="shrink-0" style={{ color: "var(--orange)" } as React.CSSProperties} />
+            <FolderIcon size={14} className="shrink-0" style={{ color: "var(--orange-text)" } as React.CSSProperties} />
           )}
           <span className="truncate">{node.name}</span>
         </button>

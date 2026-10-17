@@ -146,7 +146,7 @@ export default function LessonViewer({
         <div className="flex items-center gap-2 text-xs sm:text-sm overflow-hidden whitespace-nowrap">
           <Link
             href="/"
-            className="hover:opacity-70 transition-opacity font-medium"
+            className="inline-flex items-center min-h-6 hover:opacity-70 transition-opacity font-medium"
             style={{ color: "var(--ink-muted)" }}
           >
             Home
@@ -154,7 +154,7 @@ export default function LessonViewer({
           <span style={{ color: "var(--border)" }}>/</span>
           <Link
             href={`/repo/${owner}/${name}`}
-            className="hover:opacity-70 transition-opacity font-medium truncate max-w-[140px] sm:max-w-none"
+            className="inline-flex items-center min-h-6 min-w-12 hover:opacity-70 transition-opacity font-medium truncate max-w-[140px] sm:max-w-none"
             style={{ color: "var(--ink-muted)" }}
           >
             {owner}/{name}
@@ -186,11 +186,11 @@ export default function LessonViewer({
             <button
               onClick={() => setLang("hinglish")}
               className={`px-2.5 py-1 text-xs font-bold rounded-lg transition-all ${
-                lang === "hinglish" ? "text-white shadow-sm" : ""
+                lang === "hinglish" ? "shadow-sm" : ""
               }`}
               style={{
                 background: lang === "hinglish" ? "var(--orange)" : "transparent",
-                color: lang === "hinglish" ? "#fff" : "var(--ink-muted)",
+                color: lang === "hinglish" ? "var(--ink)" : "var(--ink-muted)",
               }}
             >
               Hinglish
@@ -221,7 +221,7 @@ export default function LessonViewer({
             <h3 className="font-bold text-sm tracking-wide uppercase" style={{ color: "var(--ink-muted)" }}>
               Course Syllabus
             </h3>
-            <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: "var(--cream)", color: "var(--orange)" }}>
+            <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: "var(--cream)", color: "var(--orange-text)" }}>
               {course.learningPath.length} Lessons
             </span>
           </div>
@@ -240,7 +240,7 @@ export default function LessonViewer({
                 status === "completed"
                   ? "var(--green)"
                   : isCurrent
-                  ? "var(--orange)"
+                  ? "var(--orange-text)"
                   : "var(--border)";
 
               return (
@@ -250,7 +250,7 @@ export default function LessonViewer({
                   className={`flex items-start gap-2.5 p-2.5 rounded-xl text-sm transition-all ${
                     isCurrent
                       ? "font-bold shadow-sm"
-                      : "hover:bg-black/5 opacity-80 hover:opacity-100"
+                      : "hover:bg-black/5"
                   }`}
                   style={{
                     background: isCurrent ? "var(--cream)" : "transparent",
@@ -267,7 +267,7 @@ export default function LessonViewer({
                     <div className="text-xs font-bold leading-tight line-clamp-1">
                       {item.lessonNumber}. {item.title}
                     </div>
-                    <div className="text-[11px] opacity-75 mt-0.5">
+                    <div className="text-[11px] mt-0.5">
                       {item.estimatedMinutes} min
                     </div>
                   </div>
@@ -330,7 +330,7 @@ export default function LessonViewer({
                       }}
                     >
                       <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold" style={{ color: "var(--orange)" }}>
+                        <span className="text-xs font-bold" style={{ color: "var(--orange-text)" }}>
                           Lesson {item.lessonNumber}
                         </span>
                         <StatusBadge status={status} />
@@ -345,7 +345,7 @@ export default function LessonViewer({
         )}
 
         {/* Center / Main Lesson Content */}
-        <main className="flex-1 min-w-0 space-y-8">
+        <div className="flex-1 min-w-0 space-y-8">
           {/* Header Card */}
           <div
             className="p-6 sm:p-8 rounded-3xl border-2 bg-white"
@@ -355,7 +355,7 @@ export default function LessonViewer({
               <div className="flex items-center gap-2">
                 <span
                   className="px-3 py-1 rounded-full text-xs font-black tracking-wide"
-                  style={{ background: "#FFF0EA", color: "var(--orange)" }}
+                  style={{ background: "#FFF0EA", color: "var(--orange-text)" }}
                 >
                   LESSON {lesson.lessonNumber} OF {course.learningPath.length}
                 </span>
@@ -626,7 +626,7 @@ export default function LessonViewer({
             {nextLesson ? (
               <Link
                 href={`/repo/${owner}/${name}/lesson/${nextLesson.id}`}
-                className="w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-3 rounded-xl font-bold text-sm text-white transition-opacity hover:opacity-90 shadow-sm"
+                className="w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-3 rounded-xl font-bold text-sm text-ink transition-opacity hover:opacity-90 shadow-sm"
                 style={{ background: "var(--orange)" }}
               >
                 <span>Next: Lesson {nextLesson.lessonNumber}</span>
@@ -643,7 +643,7 @@ export default function LessonViewer({
               </Link>
             )}
           </div>
-        </main>
+        </div>
       </div>
     </div>
   );

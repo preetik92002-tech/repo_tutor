@@ -114,7 +114,7 @@ async function RepoDashboard({ params, searchParams }: Props) {
             href={info.githubUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 text-sm font-bold underline underline-offset-4 hover:text-purple ml-2"
+            className="inline-flex items-center min-h-6 gap-1.5 text-sm font-bold underline underline-offset-4 hover:text-purple ml-2"
           >
             <span>View on GitHub</span>
             <ExternalLinkIcon size={14} />

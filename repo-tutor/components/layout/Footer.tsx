@@ -19,13 +19,13 @@ export default function Footer() {
           <div className="flex items-center gap-4">
             <Link
               href="/explore"
-              className="font-bold underline decoration-orange decoration-2 underline-offset-4 hover:text-purple transition-colors"
+              className="inline-flex items-center min-h-6 font-bold underline decoration-orange decoration-2 underline-offset-4 hover:text-purple transition-colors"
             >
               Explore
             </Link>
             <Link
               href="/progress"
-              className="font-bold underline decoration-orange decoration-2 underline-offset-4 hover:text-purple transition-colors"
+              className="inline-flex items-center min-h-6 font-bold underline decoration-orange decoration-2 underline-offset-4 hover:text-purple transition-colors"
             >
               My Progress
             </Link>
@@ -33,7 +33,7 @@ export default function Footer() {
               href="https://github.com"
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 font-bold underline decoration-orange decoration-2 underline-offset-4 hover:text-purple transition-colors"
+              className="inline-flex items-center min-h-6 gap-1 font-bold underline decoration-orange decoration-2 underline-offset-4 hover:text-purple transition-colors"
               aria-label="GitHub repository"
             >
               <GithubIcon size={15} />

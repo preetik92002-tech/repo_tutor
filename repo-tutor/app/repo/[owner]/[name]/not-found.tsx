@@ -7,16 +7,16 @@ export default function RepoNotFound() {
       <div className="text-center space-y-6 max-w-md">
         <div className="text-6xl">🗂️</div>
         <h1 className="text-3xl font-black" style={{ color: "var(--ink)" }}>
-          Repository Not Found
+          Page Not Found
         </h1>
         <p style={{ color: "var(--ink-muted)" }}>
-          This repository isn&apos;t in our demo collection yet. Try one of the featured repositories
-          or explore what&apos;s available.
+          We couldn&apos;t find that lesson or page. To learn a repository, paste its public GitHub URL on the
+          home page, or browse the sample courses.
         </p>
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
           <Link
             href="/explore"
-            className="flex items-center justify-center gap-2 px-5 py-3 rounded-xl font-bold text-white transition-opacity hover:opacity-90"
+            className="flex items-center justify-center gap-2 px-5 py-3 rounded-xl font-bold text-ink transition-opacity hover:opacity-90"
             style={{ background: "var(--orange)" }}
           >
             Explore Repos

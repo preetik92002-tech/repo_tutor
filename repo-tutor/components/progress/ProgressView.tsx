@@ -148,7 +148,7 @@ export default function ProgressView() {
             label="Active Repositories"
             value={String(progress.repos.length)}
             icon={<BookOpenIcon size={20} />}
-            color="var(--orange)"
+            color="var(--orange-text)"
           />
           <StatCard
             label="Average Score"
@@ -210,7 +210,7 @@ export default function ProgressView() {
                     <div className="shrink-0 flex items-center gap-3">
                       <Link
                         href={`/repo/${owner}/${name}`}
-                        className="flex items-center gap-2 px-5 py-3 rounded-xl font-bold text-sm text-white transition-opacity hover:opacity-90 shadow-sm"
+                        className="flex items-center gap-2 px-5 py-3 rounded-xl font-bold text-sm text-ink transition-opacity hover:opacity-90 shadow-sm"
                         style={{ background: "var(--orange)" }}
                       >
                         <span>Continue Learning</span>
@@ -262,7 +262,7 @@ export default function ProgressView() {
                                 quiz.score === quiz.total
                                   ? "#15803d"
                                   : quiz.score >= quiz.total / 2
-                                  ? "var(--orange)"
+                                  ? "var(--orange-text)"
                                   : "#b91c1c",
                             }}
                           >
@@ -333,7 +333,7 @@ function EmptyProgress() {
       <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
         <Link
           href="/#start"
-          className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-bold text-white text-sm transition-opacity hover:opacity-90 shadow-sm"
+          className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-bold text-ink text-sm transition-opacity hover:opacity-90 shadow-sm"
           style={{ background: "var(--orange)" }}
         >
           <span>Analyse a repository</span>
