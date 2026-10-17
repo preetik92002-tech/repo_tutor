@@ -1,5 +1,6 @@
 import React from "react";
 import type { CodeSnippet } from "@/lib/types";
+import { highlightLine } from "@/lib/ui/highlight";
 
 interface CodeBlockProps {
   snippet: CodeSnippet;
@@ -36,49 +37,6 @@ function highlightCode(
       </div>
     );
   });
-}
-
-function highlightLine(line: string, lang: string): string {
-  if (lang === "text") return escapeHtml(line);
-
-  let result = escapeHtml(line);
-
-  // Comments
-  result = result.replace(
-    /(\/\/[^\n]*|\/\*[\s\S]*?\*\/|#[^\n]*)/g,
-    '<span class="tok-comment">$1</span>'
-  );
-
-  // Strings
-  result = result.replace(
-    /(&quot;[^&]*?&quot;|&apos;[^&]*?&apos;|`[^`]*`)/g,
-    '<span class="tok-string">$1</span>'
-  );
-
-  // Keywords
-  const keywords =
-    /\b(import|export|from|const|let|var|function|return|if|else|for|while|class|interface|type|extends|implements|async|await|new|this|default|null|undefined|true|false|void|typeof|instanceof)\b/g;
-  result = result.replace(keywords, '<span class="tok-keyword">$1</span>');
-
-  // Functions
-  result = result.replace(
-    /\b([a-zA-Z_$][a-zA-Z0-9_$]*)(?=\s*\()/g,
-    '<span class="tok-fn">$1</span>'
-  );
-
-  // Numbers
-  result = result.replace(/\b(\d+\.?\d*)\b/g, '<span class="tok-number">$1</span>');
-
-  return result;
-}
-
-function escapeHtml(str: string): string {
-  return str
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&apos;");
 }
 
 export default function CodeBlock({
