@@ -81,7 +81,9 @@ npx tsc --noEmit      # types
 npm run lint
 npm test              # vitest: unit + integration, all with fake GitHub / scripted model
 npm run build
+npm run test:e2e      # builds, then Playwright (installed Chrome) against fake GitHub + scripted model, incl. axe a11y
 npm run ai:smoke      # REAL model (needs Ollama), not part of npm test
+RT_REAL_AI=1 npx playwright test -c playwright.real.config.ts   # OPTIONAL real-model browser smoke test
 ```
 
 `npm test` never talks to GitHub or a model. Scripted/faked providers appear **only** in tests. Real-network and real-model checks are the scripts in `scripts/` and the manual journey in [IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md).

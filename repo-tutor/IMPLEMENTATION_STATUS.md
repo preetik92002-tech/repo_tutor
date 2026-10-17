@@ -26,8 +26,10 @@ Local-only, open-weight AI (Ollama). No hosted inference, no payments, no MongoD
 |---|---|
 | `npx tsc --noEmit` | pass (no output) |
 | `npm run lint` | pass (the 1 error + 1 warning that existed at baseline were fixed) |
-| `npm test` | **139 tests passed**, 7 files (all mocked/faked providers) |
+| `npm test` | **159 tests passed**, 9 files (all mocked/faked providers) |
 | `npm run build` | pass |
+| Browser E2E (`npx playwright test`, Chrome, fake GitHub + scripted model, axe-core WCAG 2.0-2.2 A/AA) | **82 passed, 0 failed** (journey, invalid URLs, 404s, loading, API errors, failed AI, a11y on 9 pages, keyboard, reduced motion, 4 viewports) |
+| Optional real-model browser smoke (`RT_REAL_AI=1`, `playwright.real.config.ts`) | 1 passed against local gemma3:1b (asserts a labelled answer or a visible error, not quality) |
 | HTTP journey (`next start`, real GitHub, throwaway DB) | 20 of 22 checks passed; the 2 "failures" were test artefacts (see below); `/api/ask` returned a labelled `unverified` answer from the real model |
 
 Journey checks that passed: live dashboard with commit SHA, no demo banner, quiz answers absent from page HTML, real file via API, path traversal → 400, excluded secret file → 404, cannot complete a quiz lesson without passing (409), wrong answers score 0, correct answers pass with explanations, forged answers → 400, completion after pass, visit ≠ completion, progress persists across a new request with the same cookie, other cookie sees nothing, cross-site POST → 403, reset works.
@@ -36,7 +38,8 @@ The two non-passes: the provenance string was split across React text nodes (the
 
 ## Not done / blockers
 
-* **Browser-level E2E** (clicking through the UI, mobile layout, accessibility audit) has not been run. Only HTTP-level checks and component typing/lint.
+* **Accessibility**: automated axe-core plus keyboard/reduced-motion/target-size checks pass; no manual screen-reader (NVDA/VoiceOver) testing was done, and only desktop Chrome was driven (no Firefox/Safari).
+* Unknown lesson URLs return the not-found UI with HTTP 200 (streaming); rate limits are per-process.
 * **Tutor quality**: 1B models are unreliable (see evaluation). Larger models untested.
 * No auth/accounts, no payments, no admin, no analytics, no semantic search, only one skill level.
 * No CSP header; basic hardening headers added.
@@ -45,6 +48,5 @@ The two non-passes: the provenance string was split across React text nodes (the
 
 ## Next steps
 
-1. Browser E2E pass + a11y check; fix findings.
-2. Decide on a larger local model if hardware allows; re-run `scripts/ai-bench.ts`.
-3. Review the diff and lockfile changes (`package-lock.json`, `yarn.lock`), then commit in small commits and push after inspecting the remote.
+1. Decide on a larger local model if hardware allows; re-run `scripts/ai-bench.ts`.
+2. Commit in small commits and push after inspecting the remote.
